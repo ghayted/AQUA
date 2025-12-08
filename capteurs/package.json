@@ -1,0 +1,16 @@
+{
+  "name": "aquawatch-capteurs",
+  "version": "1.0.0",
+  "description": "Service de simulation de capteurs pour AquaWatch",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.3.0",
+    "pg": "^8.11.3"
+  },
+  "author": "",
+  "license": "ISC"
+}
+

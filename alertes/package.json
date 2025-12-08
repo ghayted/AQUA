@@ -1,0 +1,16 @@
+{
+  "name": "aquawatch-alertes",
+  "version": "1.0.0",
+  "description": "Service d'alertes pour AquaWatch",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "pg": "^8.11.3",
+    "nodemailer": "^6.9.7"
+  },
+  "author": "",
+  "license": "ISC"
+}
+

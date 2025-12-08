@@ -1,0 +1,227 @@
+services:
+  # Base de données TimescaleDB avec PostGIS pour les données des capteurs
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: aquawatch-timescaledb
+    environment:
+      POSTGRES_DB: aquawatch
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./data/timescaledb:/var/lib/postgresql/data
+      - ./init-postgis.sql:/docker-entrypoint-initdb.d/init-postgis.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Base de données PostgreSQL pour les alertes
+  postgres:
+    image: postgres:15-alpine
+    container_name: aquawatch-postgres
+    environment:
+      POSTGRES_DB: alertes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Service GeoServer
+  geoserver:
+    image: kartoza/geoserver:latest
+    container_name: aquawatch-geoserver
+    ports:
+      - "8080:8080"
+    environment:
+      GEOSERVER_DATA_DIR: /opt/geoserver/data_dir
+      ENABLE_JSONP: "true"
+    volumes:
+      - geoserver_data:/opt/geoserver/data_dir
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/geoserver/web || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Broker MQTT (Mosquitto)
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0
+    container_name: aquawatch-mqtt
+    ports:
+      - "1883:1883"
+      - "9003:9001"
+    volumes:
+      - ./mqtt/config:/mosquitto/config
+      - ./mqtt/data:/mosquitto/data
+      - ./mqtt/log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 mosquitto_pub -h localhost -t test -m test || exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # MinIO pour le stockage des données satellite
+  minio:
+    image: minio/minio:latest
+    container_name: aquawatch-minio
+    ports:
+      - "9000:9000"
+      - "9002:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - ./data/minio:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Service capteurs (Node.js)
+  capteurs:
+    build: ./capteurs
+    container_name: aquawatch-capteurs
+    environment:
+      TIMESCALEDB_HOST: timescaledb
+      TIMESCALEDB_PORT: 5432
+      TIMESCALEDB_DB: aquawatch
+      TIMESCALEDB_USER: postgres
+      TIMESCALEDB_PASSWORD: postgres
+      MQTT_BROKER: mqtt-broker
+      MQTT_PORT: 1883
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Service satellite (Python)
+  satellite:
+    build: ./satellite
+    container_name: aquawatch-satellite
+    environment:
+      TIMESCALEDB_HOST: timescaledb
+      TIMESCALEDB_PORT: 5432
+      TIMESCALEDB_DB: aquawatch
+      TIMESCALEDB_USER: postgres
+      TIMESCALEDB_PASSWORD: postgres
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: aquawatch-satellite
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
+      SENTINEL_CLIENT_ID: ${SENTINEL_CLIENT_ID:-}
+      SENTINEL_CLIENT_SECRET: ${SENTINEL_CLIENT_SECRET:-}
+      SATELLITE_INTERVAL_SECONDS: ${SATELLITE_INTERVAL_SECONDS:-300}
+      SATELLITE_SIMULATION_FALLBACK: ${SATELLITE_SIMULATION_FALLBACK:-true}
+      SATELLITE_RESET_SCHEMA: ${SATELLITE_RESET_SCHEMA:-true}
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Service stmodel (Python)
+  stmodel:
+    build: ./stmodel
+    container_name: aquawatch-stmodel
+    environment:
+      TIMESCALEDB_HOST: timescaledb
+      TIMESCALEDB_PORT: 5432
+      TIMESCALEDB_DB: aquawatch
+      TIMESCALEDB_USER: postgres
+      TIMESCALEDB_PASSWORD: postgres
+      STM_INTERVAL_SECONDS: ${STM_INTERVAL_SECONDS:-300}
+      STM_SEQUENCE_LENGTH: ${STM_SEQUENCE_LENGTH:-12}
+      STM_RESET_SCHEMA: ${STM_RESET_SCHEMA:-true}
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Service alertes (Node.js)
+  alertes:
+    build: ./alertes
+    container_name: aquawatch-alertes
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: alertes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TIMESCALEDB_HOST: timescaledb
+      TIMESCALEDB_PORT: 5432
+      TIMESCALEDB_DB: aquawatch
+      TIMESCALEDB_USER: postgres
+      TIMESCALEDB_PASSWORD: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Service API-SIG (REST API avec PostGIS)
+  api-sig:
+    build: ./api-sig
+    container_name: aquawatch-api-sig
+    ports:
+      - "3000:3000"
+    environment:
+      POSTGIS_HOST: timescaledb
+      POSTGIS_PORT: 5432
+      POSTGIS_DB: aquawatch
+      POSTGIS_USER: postgres
+      POSTGIS_PASSWORD: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: alertes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PORT: 3000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Interface Web
+  web:
+    image: nginx:alpine
+    container_name: aquawatch-web
+    ports:
+      - "80:80"
+    volumes:
+      - ./web:/usr/share/nginx/html
+      - ./web/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      api-sig:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  geoserver_data:
+
