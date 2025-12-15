@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaWatch AI - Carte</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        .map-page {
+            display: flex;
+            height: calc(100vh - 73px);
+        }
+
+        .map-sidebar {
+            width: 320px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        .map-main {
+            flex: 1;
+            position: relative;
+        }
+
+        #fullmap {
+            height: 100%;
+            width: 100%;
+        }
+
+        .filter-group {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .filter-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .filter-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.25rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .filter-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .filter-btn.active {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            font-size: 0.875rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .sensor-detail {
+            padding: 1rem;
+        }
+
+        .sensor-detail-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sensor-detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sensor-detail-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .sensor-detail-value {
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo"><span>💧</span> AquaWatch</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Navigation</div>
+                <a href="index.html" class="nav-link"><span class="nav-link-icon">📊</span><span
+                        class="nav-link-text">Dashboard</span></a>
+                <a href="map.html" class="nav-link active"><span class="nav-link-icon">🗺️</span><span
+                        class="nav-link-text">Carte</span></a>
+                <a href="sensors.html" class="nav-link"><span class="nav-link-icon">📡</span><span
+                        class="nav-link-text">Capteurs</span></a>
+                <a href="alerts.html" class="nav-link"><span class="nav-link-icon">🚨</span><span
+                        class="nav-link-text">Alertes</span></a>
+                <a href="predictions.html" class="nav-link"><span class="nav-link-icon">🤖</span><span
+                        class="nav-link-text">Prévisions IA</span></a>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="status-badge">
+                <div class="status-dot"></div><span>Système actif</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1 class="page-title"><span class="page-title-icon">🗺️</span> Carte de Surveillance</h1>
+            <div class="page-actions">
+                <button class="btn btn-secondary btn-sm" onclick="resetView()">🎯 Rabat-Salé</button>
+                <button class="btn btn-secondary btn-sm" onclick="goToMarrakech()">📍 Marrakech</button>
+                <button class="btn btn-secondary btn-sm" onclick="refreshMap()">🔄 Actualiser</button>
+            </div>
+        </header>
+
+        <div class="map-page">
+            <div class="map-sidebar">
+                <!-- Filters -->
+                <div class="filter-group">
+                    <div class="filter-title">Filtrer par statut</div>
+                    <button class="filter-btn active" onclick="filterSensors('all')">Tous les capteurs</button>
+                    <button class="filter-btn" onclick="filterSensors('danger')">🔴 Critiques</button>
+                    <button class="filter-btn" onclick="filterSensors('warning')">🟡 Attention</button>
+                    <button class="filter-btn" onclick="filterSensors('success')">🟢 Normaux</button>
+                </div>
+
+                <!-- Legend -->
+                <div class="filter-group">
+                    <div class="filter-title">Légende</div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#10b981"></div> Normal
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#f59e0b"></div> Attention
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#ef4444"></div> Critique
+                    </div>
+                </div>
+
+                <!-- Sensor Detail -->
+                <div class="filter-group" id="sensor-detail" style="display:none">
+                    <div class="filter-title">Détail Capteur</div>
+                    <div class="sensor-detail" id="sensor-detail-content"></div>
+                </div>
+
+                <!-- Stats -->
+                <div class="filter-group">
+                    <div class="filter-title">Statistiques</div>
+                    <div class="legend-item">
+                        <span>Total capteurs:</span>
+                        <strong id="stat-total">-</strong>
+                    </div>
+                    <div class="legend-item">
+                        <span>En alerte:</span>
+                        <strong id="stat-alert" style="color:var(--warning)">-</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-main">
+                <div id="fullmap"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        let map, markerLayer;
+        let allSensors = [];
+        let currentFilter = 'all';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            refreshMap();
+            setInterval(refreshMap, 15000);
+        });
+
+        function initMap() {
+            map = L.map('fullmap').setView([32.8, -7.3], 7);  // Vue élargie pour inclure Marrakech
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap, © CARTO'
+            }).addTo(map);
+            markerLayer = L.layerGroup().addTo(map);
+        }
+
+        async function refreshMap() {
+            try {
+                allSensors = await getSensors(100);
+                document.getElementById('stat-total').textContent = allSensors.length;
+
+                const alertCount = allSensors.filter(s => {
+                    const status = getSensorStatus(s.properties.ph, s.properties.turbidite, s.properties.temperature);
+                    return status.level !== 'success';
+                }).length;
+                document.getElementById('stat-alert').textContent = alertCount;
+
+                renderMarkers();
+            } catch (error) {
+                console.error('Map refresh error:', error);
+            }
+        }
+
+        function renderMarkers() {
+            markerLayer.clearLayers();
+
+            allSensors.forEach(s => {
+                const props = s.properties;
+                const [lon, lat] = s.geometry.coordinates;
+                const status = getSensorStatus(props.ph, props.turbidite, props.temperature);
+
+                if (currentFilter !== 'all' && status.level !== currentFilter) return;
+
+                const marker = L.circleMarker([lat, lon], {
+                    radius: 10,
+                    fillColor: status.color,
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 0.9
+                });
+
+                marker.on('click', () => showSensorDetail(props, status));
+
+                marker.bindTooltip(`<strong>${props.capteur_id}</strong><br>${props.zone || 'Zone inconnue'}`, {
+                    direction: 'top',
+                    offset: [0, -10]
+                });
+
+                marker.addTo(markerLayer);
+            });
+        }
+
+        function filterSensors(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderMarkers();
+        }
+
+        function showSensorDetail(props, status) {
+            const container = document.getElementById('sensor-detail');
+            const content = document.getElementById('sensor-detail-content');
+
+            content.innerHTML = `
+                <div class="sensor-detail-title">
+                    <span class="badge badge-${status.level}">${status.status}</span>
+                    ${props.capteur_id}
+                </div>
+                <div class="sensor-detail-row">
+                    <span class="sensor-detail-label">Zone</span>
+                    <span class="sensor-detail-value">${props.zone || '-'}</span>
+                </div>
+                <div class="sensor-detail-row">
+                    <span class="sensor-detail-label">pH</span>
+                    <span class="sensor-detail-value">${parseFloat(props.ph).toFixed(2)}</span>
+                </div>
+                <div class="sensor-detail-row">
+                    <span class="sensor-detail-label">Turbidité</span>
+                    <span class="sensor-detail-value">${parseFloat(props.turbidite).toFixed(2)} NTU</span>
+                </div>
+                <div class="sensor-detail-row">
+                    <span class="sensor-detail-label">Température</span>
+                    <span class="sensor-detail-value">${parseFloat(props.temperature).toFixed(1)}°C</span>
+                </div>
+                <div class="sensor-detail-row">
+                    <span class="sensor-detail-label">Mise à jour</span>
+                    <span class="sensor-detail-value">${formatTime(props.timestamp)}</span>
+                </div>
+            `;
+
+            container.style.display = 'block';
+        }
+
+        function resetView() {
+            map.setView([34.02, -6.83], 11);  // Vue Rabat-Salé
+        }
+
+        function goToMarrakech() {
+            map.setView([31.6295, -7.9811], 12);  // Vue Marrakech
+        }
+    </script>
+</body>
+
+</html>

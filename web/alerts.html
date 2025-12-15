@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaWatch AI - Alertes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        .alert-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .alert-stat {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .alert-stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .alert-stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .filter-tab:hover {
+            background: var(--bg-hover);
+        }
+
+        .filter-tab.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .alert-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .alert-row:hover {
+            background: var(--bg-hover);
+        }
+
+        .alert-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .alert-icon.critical {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .alert-icon.warning {
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .alert-message {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .alert-meta {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .alert-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .alert-zone {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo"><span>💧</span> AquaWatch</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Navigation</div>
+                <a href="index.html" class="nav-link"><span class="nav-link-icon">📊</span><span
+                        class="nav-link-text">Dashboard</span></a>
+                <a href="map.html" class="nav-link"><span class="nav-link-icon">🗺️</span><span
+                        class="nav-link-text">Carte</span></a>
+                <a href="sensors.html" class="nav-link"><span class="nav-link-icon">📡</span><span
+                        class="nav-link-text">Capteurs</span></a>
+                <a href="alerts.html" class="nav-link active"><span class="nav-link-icon">🚨</span><span
+                        class="nav-link-text">Alertes</span></a>
+                <a href="predictions.html" class="nav-link"><span class="nav-link-icon">🤖</span><span
+                        class="nav-link-text">Prévisions IA</span></a>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="status-badge">
+                <div class="status-dot"></div><span>Système actif</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1 class="page-title"><span class="page-title-icon">🚨</span> Alertes</h1>
+            <div class="page-actions">
+                <button class="btn btn-secondary btn-sm" onclick="refreshAlerts()">🔄 Actualiser</button>
+            </div>
+        </header>
+
+        <div class="page-body">
+            <!-- Alert Stats -->
+            <div class="alert-stats">
+                <div class="alert-stat">
+                    <div class="alert-stat-value" id="total-alerts" style="color:var(--text-primary)">-</div>
+                    <div class="alert-stat-label">Alertes Totales</div>
+                </div>
+                <div class="alert-stat">
+                    <div class="alert-stat-value" id="critical-alerts" style="color:var(--danger)">-</div>
+                    <div class="alert-stat-label">Critiques</div>
+                </div>
+                <div class="alert-stat">
+                    <div class="alert-stat-value" id="warning-alerts" style="color:var(--warning)">-</div>
+                    <div class="alert-stat-label">Avertissements</div>
+                </div>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="filter-tabs">
+                <button class="filter-tab active" onclick="filterAlerts('all', this)">Toutes</button>
+                <button class="filter-tab" onclick="filterAlerts('CRITICAL', this)">🔴 Critiques</button>
+                <button class="filter-tab" onclick="filterAlerts('WARNING', this)">🟡 Avertissements</button>
+            </div>
+
+            <!-- Alerts List -->
+            <div class="card">
+                <div class="card-body" style="padding:0">
+                    <div id="alerts-list">
+                        <div class="loading" style="padding:2rem">
+                            <div class="loading-spinner"></div>
+                            Chargement des alertes...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script>
+        let allAlerts = [];
+        let currentFilter = 'all';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshAlerts();
+            setInterval(refreshAlerts, 15000);
+        });
+
+        async function refreshAlerts() {
+            try {
+                allAlerts = await getAlerts(100);
+                updateStats();
+                renderAlerts();
+            } catch (error) {
+                console.error('Alerts refresh error:', error);
+            }
+        }
+
+        function updateStats() {
+            const critical = allAlerts.filter(a => a.severity === 'CRITICAL').length;
+            const warning = allAlerts.filter(a => a.severity === 'WARNING').length;
+
+            document.getElementById('total-alerts').textContent = allAlerts.length;
+            document.getElementById('critical-alerts').textContent = critical;
+            document.getElementById('warning-alerts').textContent = warning;
+        }
+
+        function renderAlerts() {
+            const container = document.getElementById('alerts-list');
+
+            const filtered = currentFilter === 'all'
+                ? allAlerts
+                : allAlerts.filter(a => a.severity === currentFilter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <p>Aucune alerte ${currentFilter !== 'all' ? 'de ce type' : ''}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(alert => `
+                <div class="alert-row">
+                    <div class="alert-icon ${alert.severity === 'CRITICAL' ? 'critical' : 'warning'}">
+                        ${alert.severity === 'CRITICAL' ? '🔴' : '🟡'}
+                    </div>
+                    <div class="alert-content">
+                        <div class="alert-title">${alert.severity === 'CRITICAL' ? 'Alerte Critique' : 'Avertissement'}</div>
+                        <div class="alert-message">${alert.message || 'Paramètres hors normes OMS'}</div>
+                    </div>
+                    <div class="alert-meta">
+                        <div class="alert-time">${formatDateTime(alert.timestamp)}</div>
+                        <div class="alert-zone">📍 ${alert.zone || 'Zone inconnue'}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterAlerts(filter, btn) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            renderAlerts();
+        }
+    </script>
+</body>
+
+</html>

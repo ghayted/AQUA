@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaWatch AI - Capteurs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        .sensor-filters {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .zone-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .zone-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .zone-card-title {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .zone-card-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .param-bar {
+            height: 6px;
+            background: var(--bg-hover);
+            border-radius: 3px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .param-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo"><span>💧</span> AquaWatch</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Navigation</div>
+                <a href="index.html" class="nav-link"><span class="nav-link-icon">📊</span><span
+                        class="nav-link-text">Dashboard</span></a>
+                <a href="map.html" class="nav-link"><span class="nav-link-icon">🗺️</span><span
+                        class="nav-link-text">Carte</span></a>
+                <a href="sensors.html" class="nav-link active"><span class="nav-link-icon">📡</span><span
+                        class="nav-link-text">Capteurs</span></a>
+                <a href="alerts.html" class="nav-link"><span class="nav-link-icon">🚨</span><span
+                        class="nav-link-text">Alertes</span></a>
+                <a href="predictions.html" class="nav-link"><span class="nav-link-icon">🤖</span><span
+                        class="nav-link-text">Prévisions IA</span></a>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="status-badge">
+                <div class="status-dot"></div><span>Système actif</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1 class="page-title"><span class="page-title-icon">📡</span> Capteurs</h1>
+            <div class="page-actions">
+                <button class="btn btn-secondary btn-sm" onclick="refreshSensors()">🔄 Actualiser</button>
+            </div>
+        </header>
+
+        <div class="page-body">
+            <!-- Zone Stats -->
+            <div class="zone-stats" id="zone-stats">
+                <div class="zone-card">
+                    <div class="zone-card-title">Total Capteurs</div>
+                    <div class="zone-card-value" id="total-sensors">-</div>
+                </div>
+                <div class="zone-card">
+                    <div class="zone-card-title">pH Moyen</div>
+                    <div class="zone-card-value" id="avg-ph">-</div>
+                    <div class="param-bar">
+                        <div class="param-bar-fill" id="ph-bar" style="width:70%;background:var(--success)"></div>
+                    </div>
+                </div>
+                <div class="zone-card">
+                    <div class="zone-card-title">Turbidité Moyenne</div>
+                    <div class="zone-card-value" id="avg-turb">-</div>
+                    <div class="param-bar">
+                        <div class="param-bar-fill" id="turb-bar" style="width:30%;background:var(--success)"></div>
+                    </div>
+                </div>
+                <div class="zone-card">
+                    <div class="zone-card-title">Temp. Moyenne</div>
+                    <div class="zone-card-value" id="avg-temp">-</div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="sensor-filters">
+                <input type="text" class="search-input" placeholder="🔍 Rechercher un capteur..." id="search-input"
+                    oninput="filterTable()">
+                <button class="btn btn-secondary btn-sm" onclick="filterByStatus('all')">Tous</button>
+                <button class="btn btn-secondary btn-sm" onclick="filterByStatus('danger')">🔴 Critiques</button>
+                <button class="btn btn-secondary btn-sm" onclick="filterByStatus('warning')">🟡 Attention</button>
+                <button class="btn btn-secondary btn-sm" onclick="filterByStatus('success')">🟢 Normaux</button>
+            </div>
+
+            <!-- Sensors Table -->
+            <div class="card">
+                <div class="card-body" style="padding:0">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID Capteur</th>
+                                    <th>Zone</th>
+                                    <th>pH</th>
+                                    <th>Turbidité (NTU)</th>
+                                    <th>Température (°C)</th>
+                                    <th>Statut</th>
+                                    <th>Dernière MAJ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sensors-tbody">
+                                <tr>
+                                    <td colspan="7" class="loading">Chargement...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script>
+        let allSensors = [];
+        let currentStatusFilter = 'all';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshSensors();
+            setInterval(refreshSensors, 15000);
+        });
+
+        async function refreshSensors() {
+            try {
+                allSensors = await getSensors(100);
+                updateStats();
+                renderTable();
+            } catch (error) {
+                console.error('Sensors refresh error:', error);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('total-sensors').textContent = allSensors.length;
+
+            const phVals = allSensors.map(s => parseFloat(s.properties.ph)).filter(v => !isNaN(v));
+            const turbVals = allSensors.map(s => parseFloat(s.properties.turbidite)).filter(v => !isNaN(v));
+            const tempVals = allSensors.map(s => parseFloat(s.properties.temperature)).filter(v => !isNaN(v));
+
+            const avgPh = phVals.length ? (phVals.reduce((a, b) => a + b, 0) / phVals.length).toFixed(2) : '-';
+            const avgTurb = turbVals.length ? (turbVals.reduce((a, b) => a + b, 0) / turbVals.length).toFixed(2) : '-';
+            const avgTemp = tempVals.length ? (tempVals.reduce((a, b) => a + b, 0) / tempVals.length).toFixed(1) : '-';
+
+            document.getElementById('avg-ph').textContent = avgPh;
+            document.getElementById('avg-turb').textContent = avgTurb + ' NTU';
+            document.getElementById('avg-temp').textContent = avgTemp + '°C';
+
+            // Update bars
+            const phPercent = ((parseFloat(avgPh) - 6) / 3) * 100;
+            document.getElementById('ph-bar').style.width = Math.max(10, Math.min(100, phPercent)) + '%';
+
+            const turbPercent = (parseFloat(avgTurb) / 5) * 100;
+            document.getElementById('turb-bar').style.width = Math.max(10, Math.min(100, turbPercent)) + '%';
+            document.getElementById('turb-bar').style.background = parseFloat(avgTurb) > 1 ? 'var(--warning)' : 'var(--success)';
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('sensors-tbody');
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+
+            const filtered = allSensors.filter(s => {
+                const props = s.properties;
+                const status = getSensorStatus(props.ph, props.turbidite, props.temperature);
+
+                const matchesStatus = currentStatusFilter === 'all' || status.level === currentStatusFilter;
+                const matchesSearch = props.capteur_id.toLowerCase().includes(searchTerm) ||
+                    (props.zone && props.zone.toLowerCase().includes(searchTerm));
+
+                return matchesStatus && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Aucun capteur trouvé</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(s => {
+                const props = s.properties;
+                const status = getSensorStatus(props.ph, props.turbidite, props.temperature);
+                return `
+                    <tr>
+                        <td><strong>${props.capteur_id}</strong></td>
+                        <td>${props.zone || '-'}</td>
+                        <td>${parseFloat(props.ph).toFixed(2)}</td>
+                        <td>${parseFloat(props.turbidite).toFixed(2)}</td>
+                        <td>${parseFloat(props.temperature).toFixed(1)}</td>
+                        <td><span class="badge badge-${status.level}">${status.status}</span></td>
+                        <td>${formatTime(props.timestamp)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterTable() {
+            renderTable();
+        }
+
+        function filterByStatus(status) {
+            currentStatusFilter = status;
+            renderTable();
+        }
+    </script>
+</body>
+
+</html>

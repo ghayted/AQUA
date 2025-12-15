@@ -1,955 +1,277 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AquaWatch - Surveillance Qualité de l'Eau</title>
+    <title>AquaWatch AI - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        :root {
-            --bg: #0b1224;
-            --panel: rgba(255, 255, 255, 0.04);
-            --panel-strong: rgba(255, 255, 255, 0.06);
-            --border: rgba(255, 255, 255, 0.08);
-            --text: #e8edf5;
-            --muted: #9fb1cc;
-            --accent: #3ac7ff;
-            --accent-2: #7c5dff;
-            --success: #3dd598;
-            --warning: #ffb74d;
-            --danger: #ff6b6b;
-            --shadow: 0 10px 40px rgba(0,0,0,0.35);
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: radial-gradient(120% 120% at 10% 20%, rgba(58, 199, 255, 0.08), transparent 45%),
-                        radial-gradient(100% 100% at 80% 10%, rgba(124, 93, 255, 0.12), transparent 40%),
-                        radial-gradient(130% 130% at 50% 80%, rgba(61, 213, 152, 0.08), transparent 45%),
-                        var(--bg);
-            color: var(--text);
-            padding-bottom: 48px;
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-        
-        .header {
-            padding: 32px 0 18px;
-            backdrop-filter: blur(12px);
-        }
-        
-        .hero {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        .hero-topline {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 14px;
-            border-radius: 999px;
-            background: var(--panel-strong);
-            border: 1px solid var(--border);
-            color: var(--muted);
-            font-size: 0.9rem;
-        }
-
-        .hero-title {
-            font-size: clamp(2.2rem, 3vw, 3rem);
-            font-weight: 700;
-            color: #f8fbff;
-            margin: 14px 0 10px;
-        }
-        
-        .hero-subtitle {
-            font-size: 1.05rem;
-            color: var(--muted);
-            max-width: 760px;
-            margin-bottom: 20px;
-        }
-        
-        .container {
-            max-width: 1250px;
-            margin: 30px auto;
-            padding: 0 22px;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, rgba(58,199,255,0.09), rgba(124,93,255,0.06));
-            padding: 18px 18px 16px;
-            border-radius: 14px;
-            box-shadow: var(--shadow);
-            transition: all 0.25s ease;
-            border: 1px solid var(--border);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-3px);
-            border-color: rgba(58, 199, 255, 0.5);
-        }
-        
-        .stat-card h3 {
-            color: var(--muted);
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            margin-bottom: 6px;
-            font-weight: 500;
-        }
-        
-        .stat-card .value {
-            font-size: 2.1rem;
-            font-weight: 700;
-            color: #f8fbff;
-        }
-        
-        .main-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .secondary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .card {
-            background: var(--panel);
-            padding: 22px;
-            border-radius: 14px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-        }
-        
-        .card h2 {
-            color: #f2f5fa;
-            font-size: 1.25rem;
-            margin-bottom: 18px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .legend {
-            display: flex;
-            gap: 18px;
-            margin-bottom: 12px;
-            font-size: 0.9rem;
-            color: var(--muted);
-        }
-        
-        .legend-dot {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 6px;
-        }
-        
-        .legend-dot.normal { background: #27ae60; }
-        .legend-dot.warning { background: #f39c12; }
-        .legend-dot.critical { background: #e74c3c; }
-        
-        .filters {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .filters button {
-            padding: 7px 16px;
-            border-radius: 22px;
-            border: 1px solid var(--border);
-            background: var(--panel);
-            color: var(--muted);
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .filters button:hover {
-            border-color: var(--accent);
-            color: var(--text);
-        }
-        
-        .filters button.active {
-            background: linear-gradient(120deg, var(--accent), var(--accent-2));
-            color: #0b1224;
-            border-color: transparent;
-            box-shadow: 0 8px 18px rgba(58, 199, 255, 0.25);
-        }
-        
-        #map {
-            height: 500px;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-        
-        .alertes-list,
-        .satellite-list,
-        .predictions-list {
-            max-height: 500px;
-            overflow-y: auto;
-        }
-        
-        /* Custom scrollbar */
-        .alertes-list::-webkit-scrollbar,
-        .satellite-list::-webkit-scrollbar,
-        .predictions-list::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .alertes-list::-webkit-scrollbar-track,
-        .satellite-list::-webkit-scrollbar-track,
-        .predictions-list::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 3px;
-        }
-        
-        .alertes-list::-webkit-scrollbar-thumb,
-        .satellite-list::-webkit-scrollbar-thumb,
-        .predictions-list::-webkit-scrollbar-thumb {
-            background: #ccc;
-            border-radius: 3px;
-        }
-        
-        .alerte-item {
-            padding: 15px;
-            margin-bottom: 12px;
-            border-left: 4px solid var(--accent);
-            border-radius: 8px;
-            background: var(--panel-strong);
-            transition: all 0.2s ease;
-            border: 1px solid var(--border);
-        }
-        
-        .alerte-item:hover {
-            transform: translateX(4px);
-            border-color: var(--accent);
-        }
-        
-        .alerte-item.critical { border-left-color: var(--danger); }
-        .alerte-item.warning { border-left-color: var(--warning); }
-        
-        .alerte-item h4 {
-            margin-bottom: 6px;
-            color: #f8fbff;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .alerte-item .zone-info {
-            font-weight: 600;
-            color: var(--accent);
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-        }
-        
-        .alerte-item .parametre-info {
-            display: inline-block;
-            background: rgba(58, 199, 255, 0.12);
-            border: 1px solid rgba(58, 199, 255, 0.35);
-            color: #e8f4ff;
-            padding: 4px 11px;
-            border-radius: 999px;
-            font-size: 0.86rem;
-            margin: 6px 6px 0 0;
-            font-weight: 600;
-        }
-        
-        .alerte-item .population-info,
-        .alerte-item .timestamp {
-            font-size: 0.8rem;
-            color: #7f8c8d;
-            margin-top: 6px;
-        }
-        
-        .satellite-item,
-        .prediction-item {
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 12px;
-            background: var(--panel);
-            transition: all 0.2s ease;
-        }
-        
-        .satellite-item:hover,
-        .prediction-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-        }
-        
-        .satellite-meta,
-        .prediction-meta {
-            font-size: 0.85rem;
-            color: var(--muted);
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin: 8px 0;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: #0b1224;
-            background: #cdd5e1;
-        }
-        
-        .badge.success { background: #3dd598; }
-        .badge.warning { background: #ffb74d; }
-        .badge.danger { background: #ff6b6b; color: #fff; }
-        
-        .confidence-bar {
-            height: 5px;
-            background: rgba(255,255,255,0.06);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-        
-        .confidence-bar span {
-            display: block;
-            height: 100%;
-            background: linear-gradient(120deg, var(--accent), var(--accent-2));
-            border-radius: 4px;
-        }
-        
-        .chart-container {
-            height: 300px;
-            margin-top: 12px;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-            background: var(--panel-strong);
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: var(--muted);
-            font-size: 0.9rem;
-        }
-        
-        .loading::after {
-            content: "";
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border: 2px solid #eee;
-            border-top-color: #3498db;
-            border-radius: 50%;
-            margin-left: 10px;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        @media (max-width: 992px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .hero-title {
-                font-size: 2rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            }
-        }
-        
-        @media (max-width: 576px) {
-            .container {
-                padding: 0 15px;
-            }
-            
-            .hero {
-                padding: 0 15px;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            
-            .secondary-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="css/main.css">
 </head>
+
 <body>
-    <div class="header">
-        <div class="hero">
-            <div class="hero-topline">◗ Surveillance en temps réel • Qualité de l'eau</div>
-            <h1 class="hero-title">AquaWatch • Quality Intelligence</h1>
-            <p class="hero-subtitle">
-                Données IoT + Sentinel-2 consolidées, analyses spatio-temporelles et alerting OMS pour un pilotage
-                fluide et moderne de la qualité hydrique.
-            </p>
-            <div class="hero-actions">
-                <span class="hero-chip">IoT + TimescaleDB</span>
-                <span class="hero-chip">SentinelHub + MinIO</span>
-                <span class="hero-chip">ConvLSTM PyTorch</span>
-                <span class="hero-chip">Alerting adaptatif</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="container">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Capteurs Actifs</h3>
-                <div class="value" id="stat-capteurs">-</div>
-            </div>
-            <div class="stat-card">
-                <h3>pH Moyen</h3>
-                <div class="value" id="stat-ph">-</div>
-            </div>
-            <div class="stat-card">
-                <h3>Alertes Actives</h3>
-                <div class="value" id="stat-alertes">-</div>
-                <div style="font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 5px;" id="stat-alertes-detail"></div>
-            </div>
-            <div class="stat-card">
-                <h3>Prédictions</h3>
-                <div class="value" id="stat-predictions">-</div>
-            </div>
-            <div class="stat-card">
-                <h3>NDWI Moyen</h3>
-                <div class="value" id="stat-ndwi">-</div>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <span>💧</span>
+                AquaWatch
             </div>
         </div>
 
-        <div class="main-grid">
-            <div class="card">
-                <h2>◗ 📍 Carte des Capteurs</h2>
-                <div class="legend">
-                    <span><span class="legend-dot normal"></span>Normal</span>
-                    <span><span class="legend-dot warning"></span>Attention</span>
-                    <span><span class="legend-dot critical"></span>Critique</span>
-                </div>
-                <div id="map"></div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Navigation</div>
+                <a href="index.html" class="nav-link active">
+                    <span class="nav-link-icon">📊</span>
+                    <span class="nav-link-text">Dashboard</span>
+                </a>
+                <a href="map.html" class="nav-link">
+                    <span class="nav-link-icon">🗺️</span>
+                    <span class="nav-link-text">Carte</span>
+                </a>
+                <a href="sensors.html" class="nav-link">
+                    <span class="nav-link-icon">📡</span>
+                    <span class="nav-link-text">Capteurs</span>
+                </a>
+                <a href="alerts.html" class="nav-link">
+                    <span class="nav-link-icon">🚨</span>
+                    <span class="nav-link-text">Alertes</span>
+                </a>
+                <a href="predictions.html" class="nav-link">
+                    <span class="nav-link-icon">🤖</span>
+                    <span class="nav-link-text">Prévisions IA</span>
+                </a>
             </div>
-            <div class="card">
-                <h2>◗ 🚨 Alertes Récentes</h2>
-                <div class="filters">
-                    <button onclick="filterAlertes('all')" class="active">Toutes</button>
-                    <button onclick="filterAlertes('CRITICAL')">Critiques</button>
-                    <button onclick="filterAlertes('WARNING')">Warnings</button>
-                </div>
-                <div class="alertes-list" id="alertes-list">
-                    <div class="loading">Chargement...</div>
-                </div>
-            </div>
-        </div>
+        </nav>
 
-        <div class="secondary-grid">
-            <div class="card">
-                <h2>◗ 🛰️ Observations Satellite</h2>
-                <div class="satellite-list" id="satellite-list">
-                    <div class="loading">Chargement...</div>
-                </div>
-            </div>
-            <div class="card">
-                <h2>◗ 🤖 Prévisions Spatio-temporelles</h2>
-                <div class="predictions-list" id="predictions-list">
-                    <div class="loading">Chargement...</div>
-                </div>
+        <div class="sidebar-footer">
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span>Système actif</span>
             </div>
         </div>
+    </aside>
 
-        <div class="card">
-            <h2>◗ 📊 Évolution Temporelle - pH</h2>
-            <div class="chart-container">
-                <canvas id="phChart"></canvas>
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="page-header">
+            <h1 class="page-title">
+                <span class="page-title-icon">📊</span>
+                Dashboard
+            </h1>
+            <div class="page-actions">
+                <button class="btn btn-secondary btn-sm" onclick="refreshData()">
+                    🔄 Actualiser
+                </button>
             </div>
-        </div>
-    </div>
+        </header>
 
-    <script>
-        // Use relative path to avoid CORS issues when served from the same domain
-        const API_BASE = '/api';
-        let map;
-        let phChart;
-        let sensorLayer;
-        let satelliteLayer;
-
-        function formatNumber(value, digits = 2) {
-            return typeof value === 'number' ? value.toFixed(digits) : '-';
-        }
-
-        // Initialiser la carte
-        function initMap() {
-            map = L.map('map').setView([34.0209, -6.8416], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-            sensorLayer = L.layerGroup().addTo(map);
-            satelliteLayer = L.layerGroup().addTo(map);
-        }
-
-        // Initialiser le graphique
-        function initChart() {
-            const ctx = document.getElementById('phChart').getContext('2d');
-            phChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'pH',
-                        data: [],
-                        borderColor: '#3498db',
-                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                        tension: 0.4,
-                        borderWidth: 2,
-                        pointBackgroundColor: '#3498db',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 1,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: {
-                        duration: 500
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            min: 6,
-                            max: 9,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            ticks: {
-                                color: '#7f8c8d'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            ticks: {
-                                color: '#7f8c8d'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#2c3e50'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Charger les statistiques
-        async function loadStats() {
-            try {
-                const response = await fetch(`${API_BASE}/stats`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                
-                // Afficher le nombre de capteurs uniques (pas le total de mesures)
-                const capteursUniques = data.capteurs?.capteurs_uniques || data.capteurs?.total || 0;
-                document.getElementById('stat-capteurs').textContent = capteursUniques;
-                document.getElementById('stat-ph').textContent = data.capteurs?.ph_moyen || '-';
-                document.getElementById('stat-ndwi').textContent = data.satellite?.ndwi_moyen || '-';
-                
-                // Charger les détails des alertes pour afficher les critiques
-                try {
-                    const alertesResponse = await fetch(`${API_BASE}/alertes?limit=100`);
-                    if (!alertesResponse.ok) {
-                        throw new Error(`HTTP error! status: ${alertesResponse.status}`);
-                    }
-                    const alertes = await alertesResponse.json();
-                    const alertesActives = alertes.filter(a => a.status === 'ACTIVE');
-                    const alertesCritiques = alertesActives.filter(a => a.severity === 'CRITICAL').length;
-                    const alertesWarning = alertesActives.filter(a => a.severity === 'WARNING').length;
-                    
-                    document.getElementById('stat-alertes').textContent = alertesActives.length;
-                    if (alertesCritiques > 0 || alertesWarning > 0) {
-                        document.getElementById('stat-alertes-detail').innerHTML = 
-                            `<span style="color: #e74c3c;">🚨 ${alertesCritiques} critiques</span> | <span style="color: #f39c12;">⚠️ ${alertesWarning} warnings</span>`;
-                    } else {
-                        document.getElementById('stat-alertes-detail').textContent = '✅ Toutes normales';
-                    }
-                } catch (error) {
-                    console.error('Erreur chargement alertes:', error);
-                    document.getElementById('stat-alertes').textContent = data.alertes?.total || 0;
-                }
-                
-                document.getElementById('stat-predictions').textContent = data.predictions?.total || 0;
-            } catch (error) {
-                console.error('Erreur chargement stats:', error);
-            }
-        }
-
-        // Charger les capteurs sur la carte
-        async function loadCapteurs() {
-            try {
-                const response = await fetch(`${API_BASE}/capteurs?limit=50`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                
-                sensorLayer.clearLayers();
-
-                // Ajouter les marqueurs
-                data.features.forEach(feature => {
-                    const [lon, lat] = feature.geometry.coordinates;
-                    const props = feature.properties;
-                    
-                    // Choisir la couleur selon les seuils OMS
-                    let markerColor = '#27ae60'; // green
-                    if (props.ph < 6.5 || props.ph > 8.5 || props.turbidite > 1.0) {
-                        markerColor = '#e74c3c'; // red
-                    } else if (props.ph < 6.8 || props.ph > 8.2 || props.turbidite > 0.8) {
-                        markerColor = '#f39c12'; // orange
-                    }
-                    
-                    // Créer une icône personnalisée
-                    const icon = L.divIcon({
-                        className: 'custom-marker',
-                        html: `<div style="background-color: ${markerColor}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>`,
-                        iconSize: [16, 16],
-                        iconAnchor: [8, 8]
-                    });
-                    
-                    const marker = L.marker([lat, lon], { icon: icon }).addTo(sensorLayer);
-                    const zoneInfo = props.zone ? `<br><b>Zone:</b> ${props.zone}` : '';
-                    marker.bindPopup(`
-                        <div style="min-width: 200px;">
-                            <b style="color: #3498db;">${props.capteur_id}</b>${zoneInfo}
-                            <hr style="margin: 8px 0;">
-                            <b>pH:</b> ${props.ph} ${props.ph < 6.5 || props.ph > 8.5 ? '⚠️' : '✅'}<br>
-                            <b>Turbidité:</b> ${props.turbidite} NTU ${props.turbidite > 1.0 ? '⚠️' : '✅'}<br>
-                            <b>Température:</b> ${props.temperature}°C<br>
-                            <small style="color: #999;">${new Date(props.timestamp).toLocaleString('fr-FR')}</small>
-                        </div>
-                    `);
-                    
-                    // Mettre à jour le graphique
-                    if (phChart) {
-                        const time = new Date(props.timestamp).toLocaleTimeString();
-                        phChart.data.labels.push(time);
-                        phChart.data.datasets[0].data.push(props.ph);
-                        
-                        // Garder seulement les 20 dernières valeurs
-                        if (phChart.data.labels.length > 20) {
-                            phChart.data.labels.shift();
-                            phChart.data.datasets[0].data.shift();
-                        }
-                        phChart.update();
-                    }
-                });
-            } catch (error) {
-                console.error('Erreur chargement capteurs:', error);
-            }
-        }
-
-        function updateSatelliteLayer(features) {
-            satelliteLayer.clearLayers();
-            features.forEach(feature => {
-                if (!feature.geometry) return;
-                const [lon, lat] = feature.geometry.coordinates;
-                const props = feature.properties;
-                const chlor = typeof props.chlorophylle === 'number' ? props.chlorophylle : 0;
-                const color = chlor > 20 ? '#e74c3c' : chlor > 10 ? '#f39c12' : '#27ae60';
-                const circle = L.circleMarker([lat, lon], {
-                    radius: 8,
-                    color,
-                    weight: 1,
-                    fillColor: color,
-                    fillOpacity: 0.6,
-                }).addTo(satelliteLayer);
-                circle.bindPopup(`
-                    <div>
-                        <strong>Satellite ${props.satellite_id || 'N/A'}</strong><br>
-                        Zone: ${props.zone || 'N/A'}<br>
-                        Chlorophylle: ${formatNumber(props.chlorophylle)} mg/m³<br>
-                        Turbidité: ${formatNumber(props.turbidite)} NTU<br>
-                        NDWI: ${formatNumber(props.ndwi)}<br>
-                        <small>${new Date(props.timestamp).toLocaleString('fr-FR')}</small><br>
-                        ${props.storage_url ? `<a href="${props.storage_url}" target="_blank">GeoTIFF</a>` : ''}
+        <div class="page-body">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon primary">📡</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Capteurs Actifs</div>
+                        <div class="stat-value" id="stat-sensors">-</div>
+                        <div class="stat-change positive">Temps réel</div>
                     </div>
-                `);
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon warning">🚨</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Alertes Actives</div>
+                        <div class="stat-value" id="stat-alerts">-</div>
+                        <div class="stat-change" id="stat-alerts-detail">-</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon info">🧪</div>
+                    <div class="stat-content">
+                        <div class="stat-label">pH Moyen</div>
+                        <div class="stat-value" id="stat-ph">-</div>
+                        <div class="stat-change">Global</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon primary">📈</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Qualité Prévue</div>
+                        <div class="stat-value" id="stat-quality">-</div>
+                        <div class="stat-change">Demain</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Column Layout -->
+            <div class="grid-2">
+                <!-- Mini Map -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🗺️ Aperçu Carte</div>
+                        <a href="map.html" class="btn btn-secondary btn-sm">Voir tout</a>
+                    </div>
+                    <div class="card-body" style="padding:0">
+                        <div id="mini-map" style="height:300px"></div>
+                    </div>
+                </div>
+
+                <!-- Recent Alerts -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🚨 Dernières Alertes</div>
+                        <a href="alerts.html" class="btn btn-secondary btn-sm">Voir tout</a>
+                    </div>
+                    <div class="card-body" style="padding:0">
+                        <div class="scroll-area" id="alerts-list" style="max-height:300px">
+                            <div class="loading">
+                                <div class="loading-spinner"></div>
+                                Chargement...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sensors Status -->
+            <div class="card" style="margin-top:1.5rem">
+                <div class="card-header">
+                    <div class="card-title">📡 État des Capteurs</div>
+                    <a href="sensors.html" class="btn btn-secondary btn-sm">Voir tout</a>
+                </div>
+                <div class="card-body" style="padding:0">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Capteur</th>
+                                    <th>Zone</th>
+                                    <th>pH</th>
+                                    <th>Turbidité</th>
+                                    <th>Température</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sensors-table">
+                                <tr>
+                                    <td colspan="6" class="loading">Chargement...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        let miniMap;
+        let markerLayer;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initMiniMap();
+            refreshData();
+            setInterval(refreshData, 15000);
+        });
+
+        function initMiniMap() {
+            miniMap = L.map('mini-map', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([34.02, -6.83], 11);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(miniMap);
+            markerLayer = L.layerGroup().addTo(miniMap);
+        }
+
+        async function refreshData() {
+            try {
+                const stats = await getStats();
+                if (!stats) return;
+
+                // Update KPIs
+                document.getElementById('stat-sensors').textContent = stats.sensorCount;
+                document.getElementById('stat-alerts').textContent = stats.alertCount;
+                document.getElementById('stat-alerts-detail').textContent =
+                    `${stats.criticalAlerts} critiques, ${stats.warningAlerts} warnings`;
+                document.getElementById('stat-ph').textContent = stats.avgPh;
+                document.getElementById('stat-quality').textContent = stats.avgQuality + '%';
+
+                // Update mini map
+                updateMiniMap(stats.sensors);
+
+                // Update alerts list
+                updateAlertsList(stats.alerts.slice(0, 5));
+
+                // Update sensors table
+                updateSensorsTable(stats.sensors.slice(0, 6));
+
+            } catch (error) {
+                console.error('Refresh error:', error);
+            }
+        }
+
+        function updateMiniMap(sensors) {
+            markerLayer.clearLayers();
+            sensors.forEach(s => {
+                const props = s.properties;
+                const [lon, lat] = s.geometry.coordinates;
+                const status = getSensorStatus(props.ph, props.turbidite, props.temperature);
+
+                L.circleMarker([lat, lon], {
+                    radius: 6,
+                    fillColor: status.color,
+                    color: status.color,
+                    fillOpacity: 0.8,
+                    weight: 2
+                }).addTo(markerLayer);
             });
         }
 
-        function renderSatelliteList(features) {
-            const listEl = document.getElementById('satellite-list');
-            if (!features || features.length === 0) {
-                listEl.innerHTML = '<div class="loading">Aucune observation satellite récente</div>';
+        function updateAlertsList(alerts) {
+            const container = document.getElementById('alerts-list');
+            if (alerts.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div>Aucune alerte récente</div>';
                 return;
             }
-            listEl.innerHTML = features.map(feature => {
-                const props = feature.properties;
-                const chlorVal = typeof props.chlorophylle === 'number' ? props.chlorophylle : 0;
-                const severityClass = chlorVal > 20 ? 'danger' : chlorVal > 10 ? 'warning' : 'success';
-                return `
-                    <div class="satellite-item">
-                        <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <strong>${props.zone || 'Zone satellite'}</strong>
-                            <span class="badge ${severityClass}">${props.source || 'Sentinel-2'}</span>
-                        </div>
-                        <div class="satellite-meta" style="margin:6px 0;">
-                            <span>🛰️ ${props.satellite_id || '-'}</span>
-                            <span>Chloro: <strong>${formatNumber(props.chlorophylle)}</strong> mg/m³</span>
-                            <span>Turbidité: <strong>${formatNumber(props.turbidite)}</strong> NTU</span>
-                            <span>NDWI: <strong>${formatNumber(props.ndwi)}</strong></span>
-                        </div>
-                        ${props.storage_url ? `<a href="${props.storage_url}" target="_blank" style="font-size:12px;">Télécharger le GeoTIFF</a>` : ''}
-                        <div class="timestamp">🕐 ${new Date(props.timestamp).toLocaleString('fr-FR')}</div>
+
+            container.innerHTML = alerts.map(alert => `
+                <div style="padding:0.875rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.75rem">
+                    <span class="badge badge-${alert.severity === 'CRITICAL' ? 'danger' : 'warning'}">
+                        ${alert.severity}
+                    </span>
+                    <div style="flex:1">
+                        <div style="font-weight:500">${alert.zone || 'Zone inconnue'}</div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary)">${alert.message}</div>
                     </div>
+                    <div style="font-size:0.75rem;color:var(--text-muted)">${formatTime(alert.timestamp)}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateSensorsTable(sensors) {
+            const tbody = document.getElementById('sensors-table');
+            tbody.innerHTML = sensors.map(s => {
+                const props = s.properties;
+                const status = getSensorStatus(props.ph, props.turbidite, props.temperature);
+                return `
+                    <tr>
+                        <td><strong>${props.capteur_id}</strong></td>
+                        <td>${props.zone || '-'}</td>
+                        <td>${parseFloat(props.ph).toFixed(2)}</td>
+                        <td>${parseFloat(props.turbidite).toFixed(2)} NTU</td>
+                        <td>${parseFloat(props.temperature).toFixed(1)}°C</td>
+                        <td><span class="badge badge-${status.level}">${status.status}</span></td>
+                    </tr>
                 `;
             }).join('');
         }
-
-        async function loadSatelliteData() {
-            try {
-                const response = await fetch(`${API_BASE}/satellite?limit=20`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                updateSatelliteLayer(data.features || []);
-                renderSatelliteList(data.features || []);
-            } catch (error) {
-                console.error('Erreur satellite:', error);
-                document.getElementById('satellite-list').innerHTML = '<div class="loading">Erreur de chargement</div>';
-            }
-        }
-
-        async function loadPredictions() {
-            try {
-                const response = await fetch(`${API_BASE}/predictions?limit=60`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                const listEl = document.getElementById('predictions-list');
-                if (!data || data.length === 0) {
-                    listEl.innerHTML = '<div class="loading">Aucune projection disponible</div>';
-                    return;
-                }
-                const items = data.slice(0, 12).map(pred => {
-                    const qualiteScore = typeof pred.qualite_score === 'number' ? pred.qualite_score : 0;
-                    const risqueScore = typeof pred.risque_score === 'number' ? pred.risque_score : 0;
-                    const severity = qualiteScore >= 70 ? 'success' : qualiteScore >= 50 ? 'warning' : 'danger';
-                    return `
-                        <div class="prediction-item">
-                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-                                <strong>${pred.zone_id}</strong>
-                                <span class="badge ${severity}">H+${pred.prediction_horizon}h</span>
-                            </div>
-                            <div class="prediction-meta" style="margin:6px 0;">
-                                <span>Qualité: <strong>${qualiteScore.toFixed(1)}%</strong> (${pred.qualite_niveau})</span>
-                                <span>Risque: <strong>${risqueScore.toFixed(1)}%</strong> (${pred.risque_niveau})</span>
-                                <span>Confiance: <strong>${pred.confidence ?? 0}%</strong></span>
-                            </div>
-                            <div class="prediction-meta">
-                                <span>pH prévu: ${pred.ph_pred ?? '-'}</span>
-                                <span>Turbidité: ${pred.turbidite_pred ?? '-'} NTU</span>
-                                <span>Température: ${pred.temperature_pred ?? '-'}°C</span>
-                            </div>
-                            <div class="confidence-bar">
-                                <span style="width:${pred.confidence || 0}%"></span>
-                            </div>
-                            <div class="timestamp">🕐 ${new Date(pred.timestamp).toLocaleString('fr-FR')}</div>
-                        </div>
-                    `;
-                }).join('');
-                listEl.innerHTML = items;
-            } catch (error) {
-                console.error('Erreur prédictions:', error);
-                document.getElementById('predictions-list').innerHTML = '<div class="loading">Erreur de chargement</div>';
-            }
-        }
-
-        // Filtrer les alertes
-        let currentFilter = 'all';
-        function filterAlertes(severity) {
-            // Update active button state
-            const buttons = document.querySelectorAll('.filters button');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            currentFilter = severity;
-            loadAlertes();
-        }
-
-        // Charger les alertes avec filtre
-        async function loadAlertes() {
-            try {
-                const url = currentFilter === 'all' 
-                    ? `${API_BASE}/alertes?limit=20`
-                    : `${API_BASE}/alertes?limit=20&severity=${currentFilter}`;
-                const response = await fetch(url);
-                
-                // Vérifier si la réponse est OK
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                let alertes = await response.json();
-                
-                // Vérifier si les données sont valides
-                if (!Array.isArray(alertes)) {
-                    throw new Error('Les données des alertes ne sont pas au bon format');
-                }
-                
-                // Filtrer les alertes SYSTEM_OK pour ne montrer que les vraies alertes
-                alertes = alertes.filter(alerte => alerte.type !== 'SYSTEM_OK' && alerte.status === 'ACTIVE');
-                
-                const listEl = document.getElementById('alertes-list');
-                if (alertes.length === 0) {
-                    listEl.innerHTML = '<div class="loading">✅ Aucune alerte active - Tous les paramètres dans les normes OMS</div>';
-                    return;
-                }
-                
-                // Trier par sévérité (CRITICAL d'abord) puis par timestamp
-                const severityOrder = { 'CRITICAL': 0, 'WARNING': 1, 'INFO': 2 };
-                alertes.sort((a, b) => {
-                    const severityDiff = (severityOrder[a.severity] || 3) - (severityOrder[b.severity] || 3);
-                    if (severityDiff !== 0) return severityDiff;
-                    return new Date(b.timestamp) - new Date(a.timestamp); // Plus récent d'abord
-                });
-                
-                listEl.innerHTML = alertes.map(alerte => {
-                    const severity = alerte.severity ? alerte.severity.toLowerCase() : 'info';
-                    const zone = alerte.zone_geographique || alerte.zone || 'Zone inconnue';
-                    const capteur = alerte.capteur_id || 'N/A';
-                    
-                    // Afficher le paramètre et la valeur de manière claire
-                    let parametreHtml = '';
-                    if (alerte.parametre && alerte.valeur !== null && alerte.valeur !== undefined) {
-                        const valeurFormat = alerte.parametre === 'ph' ? parseFloat(alerte.valeur).toFixed(2) :
-                                            alerte.parametre === 'turbidite' ? `${parseFloat(alerte.valeur).toFixed(2)} NTU` :
-                                            alerte.parametre === 'temperature' ? `${parseFloat(alerte.valeur).toFixed(2)}°C` :
-                                            parseFloat(alerte.valeur).toFixed(2);
-                        parametreHtml = `<div class="parametre-info" style="margin: 5px 0;">
-                            <strong>${alerte.parametre.toUpperCase()}:</strong> ${valeurFormat} 
-                            ${alerte.seuil_oms ? `<span style="color: #999;">(Seuil OMS: ${alerte.seuil_oms})</span>` : ''}
-                        </div>`;
-                    }
-                    
-                    const population = alerte.population_exposee ? `<div class="population-info">👥 Population exposée: ${parseInt(alerte.population_exposee).toLocaleString()} habitants</div>` : '';
-                    const polluant = alerte.type_polluant ? `<div class="parametre-info" style="margin-top: 5px;">🔬 Type de polluant: ${alerte.type_polluant}</div>` : '';
-                    
-                    // Type d'alerte lisible
-                    const typeReadable = alerte.type ? alerte.type.replace(/_/g, ' ') : 'Alerte';
-                    const icon = severity === 'critical' ? '🚨' : severity === 'warning' ? '⚠️' : 'ℹ️';
-                    
-                    return `
-                    <div class="alerte-item ${severity}">
-                        <h4>
-                            <span class="severity-badge ${severity}">${alerte.severity || 'INFO'}</span>
-                            ${icon} ${typeReadable}
-                        </h4>
-                        <div class="zone-info">📍 ${zone}</div>
-                        <div style="font-size: 12px; color: #666; margin: 5px 0;">
-                            <strong>Capteur:</strong> ${capteur}
-                        </div>
-                        <p style="margin: 8px 0; font-weight: 500;">${alerte.message || 'Aucun message disponible'}</p>
-                        ${parametreHtml}
-                        ${polluant}
-                        ${population}
-                        <div class="timestamp">🕐 ${new Date(alerte.timestamp).toLocaleString('fr-FR')}</div>
-                    </div>
-                `;
-                }).join('');
-            } catch (error) {
-                console.error('Erreur chargement alertes:', error);
-                document.getElementById('alertes-list').innerHTML = 
-                    `<div class="loading">Erreur de chargement: ${error.message}</div>`;
-            }
-        }
-
-        // Rafraîchir toutes les données
-        async function refreshData() {
-            // Add a subtle refresh animation
-            const refreshElements = document.querySelectorAll('.card, .stat-card');
-            refreshElements.forEach(el => {
-                el.style.transition = 'opacity 0.3s';
-                el.style.opacity = '0.8';
-            });
-            
-            await Promise.all([
-                loadStats(),
-                loadCapteurs(),
-                loadAlertes(),
-                loadSatelliteData(),
-                loadPredictions()
-            ]);
-            
-            // Restore opacity after refresh
-            setTimeout(() => {
-                refreshElements.forEach(el => {
-                    el.style.opacity = '1';
-                });
-            }, 300);
-        }
-
-        // Initialisation
-        initMap();
-        initChart();
-        
-        // Add fade-in initialization animation
-        setTimeout(() => {
-            document.body.style.opacity = '1';
-            document.body.style.transition = 'opacity 0.5s ease';
-            refreshData();
-        }, 100);
-        
-        // Rafraîchir toutes les 10 secondes (instead of 5 for better performance)
-        setInterval(refreshData, 10000);
     </script>
 </body>
-</html>
 
+</html>

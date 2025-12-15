@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaWatch - Prévisions 24h</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        .page-body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        /* Zone Tabs */
+        .zone-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .zone-tab {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .zone-tab:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .zone-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .zone-tab.critical {
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+
+        .zone-tab.critical.active {
+            background: #dc2626;
+            color: white;
+        }
+
+        /* Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .stat-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .stat-value.success {
+            color: #10b981;
+        }
+
+        .stat-value.warning {
+            color: #f59e0b;
+        }
+
+        .stat-value.danger {
+            color: #ef4444;
+        }
+
+        /* Forecast Header */
+        .forecast-header {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .forecast-location {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .forecast-date {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Hourly Table */
+        .hourly-table-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .hourly-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .hourly-table thead {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .hourly-table th {
+            padding: 0.875rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .hourly-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .hourly-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .hourly-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .hourly-table tbody tr.highlight {
+            background: rgba(16, 185, 129, 0.08);
+        }
+
+        .hourly-table tbody tr.critical {
+            background: rgba(239, 68, 68, 0.08);
+        }
+
+        .hour-cell {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .score-cell {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .score-cell.excellent {
+            color: #10b981;
+        }
+
+        .score-cell.good {
+            color: #22c55e;
+        }
+
+        .score-cell.warning {
+            color: #f59e0b;
+        }
+
+        .score-cell.danger {
+            color: #ef4444;
+        }
+
+        .param-cell {
+            font-weight: 500;
+        }
+
+        .param-cell.ok {
+            color: #10b981;
+        }
+
+        .param-cell.warn {
+            color: #f59e0b;
+        }
+
+        .param-cell.bad {
+            color: #ef4444;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 500;
+        }
+
+        .status-badge.excellent {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .status-badge.good {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .status-badge.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .status-badge.danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .risk-bar {
+            width: 60px;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .risk-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .risk-bar-fill.low {
+            background: #10b981;
+        }
+
+        .risk-bar-fill.medium {
+            background: #f59e0b;
+        }
+
+        .risk-bar-fill.high {
+            background: #ef4444;
+        }
+
+        /* Responsive table scroll */
+        @media (max-width: 900px) {
+            .hourly-table-container {
+                overflow-x: auto;
+            }
+
+            .hourly-table {
+                min-width: 700px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo"><span>💧</span> AquaWatch</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Navigation</div>
+                <a href="index.html" class="nav-link"><span class="nav-link-icon">📊</span><span
+                        class="nav-link-text">Dashboard</span></a>
+                <a href="map.html" class="nav-link"><span class="nav-link-icon">🗺️</span><span
+                        class="nav-link-text">Carte</span></a>
+                <a href="sensors.html" class="nav-link"><span class="nav-link-icon">📡</span><span
+                        class="nav-link-text">Capteurs</span></a>
+                <a href="alerts.html" class="nav-link"><span class="nav-link-icon">🚨</span><span
+                        class="nav-link-text">Alertes</span></a>
+                <a href="predictions.html" class="nav-link active"><span class="nav-link-icon">🤖</span><span
+                        class="nav-link-text">Prévisions IA</span></a>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="status-badge">
+                <div class="status-dot"></div><span>Système actif</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1 class="page-title">Prévisions Qualité de l'Eau</h1>
+            <div class="page-actions">
+                <button class="btn btn-secondary btn-sm" onclick="refreshPredictions()">Actualiser</button>
+            </div>
+        </header>
+
+        <div class="page-body">
+            <!-- Zone Tabs -->
+            <div class="zone-tabs" id="zone-tabs"></div>
+
+            <!-- Stats Row -->
+            <div class="stats-row" id="stats-row"></div>
+
+            <!-- Forecast Header -->
+            <div class="forecast-header" id="forecast-header">
+                <div class="forecast-location">Chargement...</div>
+                <div class="forecast-date"></div>
+            </div>
+
+            <!-- Hourly Table -->
+            <div class="hourly-table-container">
+                <table class="hourly-table" id="hourly-table">
+                    <thead>
+                        <tr>
+                            <th>Heure</th>
+                            <th>Qualité</th>
+                            <th>Statut</th>
+                            <th>pH</th>
+                            <th>Turbidité</th>
+                            <th>Température</th>
+                            <th>Risque</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hourly-tbody">
+                        <tr>
+                            <td colspan="7" style="text-align:center;padding:2rem">Chargement...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script>
+        let allPredictions = [];
+        let selectedZone = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshPredictions();
+            setInterval(refreshPredictions, 60000);
+        });
+
+        async function refreshPredictions() {
+            try {
+                const response = await fetch(`${API_BASE}/predictions?limit=300`);
+                if (!response.ok) throw new Error('API Error');
+                allPredictions = await response.json();
+                allPredictions.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+                const zones = [...new Set(allPredictions.map(p => p.zone_id))];
+                if (!selectedZone && zones.length > 0) selectedZone = zones[0];
+
+                renderZoneTabs(zones);
+                renderForecast();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function renderZoneTabs(zones) {
+            document.getElementById('zone-tabs').innerHTML = zones.map(zone => {
+                const zoneData = allPredictions.filter(p => p.zone_id === zone);
+                const avgScore = zoneData.reduce((s, p) => s + parseFloat(p.qualite_score || 0), 0) / zoneData.length;
+                const isCritical = avgScore < 50;
+                return `<button class="zone-tab ${selectedZone === zone ? 'active' : ''} ${isCritical ? 'critical' : ''}" 
+                        onclick="selectZone('${zone}')">${zone}</button>`;
+            }).join('');
+        }
+
+        function selectZone(zone) {
+            selectedZone = zone;
+            renderZoneTabs([...new Set(allPredictions.map(p => p.zone_id))]);
+            renderForecast();
+        }
+
+        function renderForecast() {
+            let zoneData = allPredictions.filter(p => p.zone_id === selectedZone);
+
+            // Trier par heure (0 à 23)
+            zoneData.sort((a, b) => {
+                const hourA = new Date(a.timestamp).getHours();
+                const hourB = new Date(b.timestamp).getHours();
+                return hourA - hourB;
+            });
+
+            if (zoneData.length === 0) return;
+
+            // Stats
+            const avgQ = zoneData.reduce((s, p) => s + parseFloat(p.qualite_score || 0), 0) / zoneData.length;
+            const maxR = Math.max(...zoneData.map(p => parseFloat(p.risque_score || 0)));
+            const critHours = zoneData.filter(p => parseFloat(p.qualite_score) < 40).length;
+            const conf = parseFloat(zoneData[0]?.confidence) || 50;
+
+            document.getElementById('stats-row').innerHTML = `
+                <div class="stat-box">
+                    <div class="stat-label">Qualité moyenne</div>
+                    <div class="stat-value ${avgQ >= 60 ? 'success' : avgQ >= 40 ? 'warning' : 'danger'}">${avgQ.toFixed(0)}%</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Risque maximum</div>
+                    <div class="stat-value ${maxR <= 30 ? 'success' : maxR <= 60 ? 'warning' : 'danger'}">${maxR.toFixed(0)}%</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Heures critiques</div>
+                    <div class="stat-value ${critHours === 0 ? 'success' : 'danger'}">${critHours}/24</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Fiabilité</div>
+                    <div class="stat-value">${conf.toFixed(0)}%</div>
+                </div>
+            `;
+
+            // Header
+            const date = new Date(zoneData[0].timestamp);
+            const dateStr = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+            document.getElementById('forecast-header').innerHTML = `
+                <div class="forecast-location">${selectedZone}</div>
+                <div class="forecast-date">Prévisions pour ${dateStr}</div>
+            `;
+
+            // Table
+            document.getElementById('hourly-tbody').innerHTML = zoneData.map(p => {
+                const q = parseFloat(p.qualite_score) || 0;
+                const r = parseFloat(p.risque_score) || 0;
+                const ph = parseFloat(p.ph_pred) || 7;
+                const turb = parseFloat(p.turbidite_pred) || 0;
+                const temp = parseFloat(p.temperature_pred) || 20;
+                const hour = new Date(p.timestamp).getHours();
+
+                // Classifications
+                let qClass = q >= 80 ? 'excellent' : q >= 60 ? 'good' : q >= 40 ? 'warning' : 'danger';
+                let qText = q >= 80 ? 'Excellente' : q >= 60 ? 'Bonne' : q >= 40 ? 'Moyenne' : 'Critique';
+                let phClass = ph >= 6.5 && ph <= 8.5 ? 'ok' : ph >= 6.0 && ph <= 9.0 ? 'warn' : 'bad';
+                let turbClass = turb <= 1.0 ? 'ok' : turb <= 5.0 ? 'warn' : 'bad';
+                let tempClass = temp <= 25 ? 'ok' : temp <= 30 ? 'warn' : 'bad';
+                let riskClass = r <= 30 ? 'low' : r <= 60 ? 'medium' : 'high';
+
+                const isNoon = hour === 12;
+                const isCrit = q < 40;
+
+                return `
+                    <tr class="${isNoon ? 'highlight' : ''} ${isCrit ? 'critical' : ''}">
+                        <td class="hour-cell">${String(hour).padStart(2, '0')}:00</td>
+                        <td class="score-cell ${qClass}">${q.toFixed(0)}%</td>
+                        <td><span class="status-badge ${qClass}">${qText}</span></td>
+                        <td class="param-cell ${phClass}">${ph.toFixed(2)}</td>
+                        <td class="param-cell ${turbClass}">${turb.toFixed(2)} NTU</td>
+                        <td class="param-cell ${tempClass}">${temp.toFixed(1)}°C</td>
+                        <td>
+                            <div class="risk-bar">
+                                <div class="risk-bar-fill ${riskClass}" style="width: ${r}%"></div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+
+</html>

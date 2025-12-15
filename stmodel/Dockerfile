@@ -1,19 +1,17 @@
-FROM python:3.11-slim
+FROM python:3.9-slim
 
 WORKDIR /app
 
-# Note: matplotlib fonctionne en mode headless sans dépendances graphiques supplémentaires
-# Les dépendances Python sont suffisantes
+# Force Python to flush stdout/stderr immediately
+ENV PYTHONUNBUFFERED=1
 
-# Copier les fichiers de dépendances
 COPY requirements.txt .
-
-# Installer les dépendances Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copier le code source
 COPY stmodel.py .
+COPY generate_historical_data.py .
+COPY trained_weights.pth .
 
-# Commande de démarrage
-CMD ["python", "stmodel.py"]
+CMD ["python", "-u", "stmodel.py"]
+
 

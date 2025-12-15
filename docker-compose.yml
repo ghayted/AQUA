@@ -102,6 +102,7 @@ services:
       TIMESCALEDB_PASSWORD: postgres
       MQTT_BROKER: mqtt-broker
       MQTT_PORT: 1883
+      CAPTEURS_INTERVAL_SECONDS: ${CAPTEURS_INTERVAL_SECONDS:-5}
     depends_on:
       timescaledb:
         condition: service_healthy
@@ -148,8 +149,8 @@ services:
       TIMESCALEDB_USER: postgres
       TIMESCALEDB_PASSWORD: postgres
       STM_INTERVAL_SECONDS: ${STM_INTERVAL_SECONDS:-300}
-      STM_SEQUENCE_LENGTH: ${STM_SEQUENCE_LENGTH:-12}
-      STM_RESET_SCHEMA: ${STM_RESET_SCHEMA:-true}
+    volumes:
+      - ./stmodel/weights:/app/weights
     depends_on:
       timescaledb:
         condition: service_healthy
@@ -224,4 +225,3 @@ services:
 
 volumes:
   geoserver_data:
-

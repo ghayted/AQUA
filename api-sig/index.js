@@ -1,10 +1,49 @@
 const express = require('express');
 const { Client } = require('pg');
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Configuration Swagger
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'AquaWatch API',
+      version: '1.0.0',
+      description: 'API REST pour le système de surveillance de qualité de l\'eau AquaWatch. Fournit les données des capteurs, prédictions IA, alertes et statistiques.',
+      contact: {
+        name: 'Équipe AquaWatch',
+        email: 'dafalighayt@gmail.com'
+      }
+    },
+    servers: [
+      {
+        url: 'http://localhost:3000',
+        description: 'Serveur de développement'
+      }
+    ],
+    tags: [
+      { name: 'Capteurs', description: 'Données des capteurs IoT' },
+      { name: 'Satellite', description: 'Données satellite' },
+      { name: 'Prédictions', description: 'Prédictions IA 24h' },
+      { name: 'Alertes', description: 'Alertes OMS' },
+      { name: 'Statistiques', description: 'Statistiques globales' },
+      { name: 'Santé', description: 'État du service' }
+    ]
+  },
+  apis: ['./index.js']
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'AquaWatch API Documentation'
+}));
 
 // Configuration de la base de données PostGIS
 const dbConfig = {
@@ -32,12 +71,84 @@ async function initDatabase() {
   }
 }
 
-// Route de santé
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Vérifier l'état de santé de l'API
+ *     tags: [Santé]
+ *     responses:
+ *       200:
+ *         description: Service opérationnel
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: OK
+ *                 service:
+ *                   type: string
+ *                   example: API-SIG
+ */
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', service: 'API-SIG' });
 });
 
-// GET /api/capteurs - Récupérer les données des capteurs avec géolocalisation
+/**
+ * @swagger
+ * /api/capteurs:
+ *   get:
+ *     summary: Récupérer les données des capteurs IoT
+ *     tags: [Capteurs]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *         description: Nombre maximum de résultats
+ *     responses:
+ *       200:
+ *         description: Collection GeoJSON des mesures capteurs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 type:
+ *                   type: string
+ *                   example: FeatureCollection
+ *                 features:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       type:
+ *                         type: string
+ *                         example: Feature
+ *                       properties:
+ *                         type: object
+ *                         properties:
+ *                           capteur_id:
+ *                             type: string
+ *                             example: CAPT-1
+ *                           zone:
+ *                             type: string
+ *                             example: Rabat-Centre
+ *                           ph:
+ *                             type: number
+ *                             example: 7.2
+ *                           turbidite:
+ *                             type: number
+ *                             example: 1.5
+ *                           temperature:
+ *                             type: number
+ *                             example: 22.5
+ *       500:
+ *         description: Erreur serveur
+ */
 app.get('/api/capteurs', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 100;
@@ -57,7 +168,7 @@ app.get('/api/capteurs', async (req, res) => {
       LIMIT $1
     `;
     const result = await dbClient.query(query, [limit]);
-    
+
     const features = result.rows.map(row => ({
       type: 'Feature',
       properties: {
@@ -85,7 +196,25 @@ app.get('/api/capteurs', async (req, res) => {
   }
 });
 
-// GET /api/satellite - Récupérer les données satellite
+/**
+ * @swagger
+ * /api/satellite:
+ *   get:
+ *     summary: Récupérer les données satellite
+ *     tags: [Satellite]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *         description: Nombre maximum de résultats
+ *     responses:
+ *       200:
+ *         description: Collection GeoJSON des observations satellite
+ *       500:
+ *         description: Erreur serveur
+ */
 app.get('/api/satellite', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 100;
@@ -107,7 +236,7 @@ app.get('/api/satellite', async (req, res) => {
       LIMIT $1
     `;
     const result = await dbClient.query(query, [limit]);
-    
+
     const features = result.rows.map(row => ({
       type: 'Feature',
       properties: {
@@ -137,30 +266,116 @@ app.get('/api/satellite', async (req, res) => {
   }
 });
 
-// GET /api/predictions - Récupérer les prédictions
+/**
+ * @swagger
+ * /api/predictions:
+ *   get:
+ *     summary: Récupérer les prédictions IA de qualité de l'eau
+ *     tags: [Prédictions]
+ *     parameters:
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Date des prédictions (YYYY-MM-DD)
+ *         example: 2024-12-16
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *         description: Nombre maximum de résultats
+ *     responses:
+ *       200:
+ *         description: Liste des prédictions horaires par zone
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   zone_id:
+ *                     type: string
+ *                     example: Rabat-Centre
+ *                   ph_pred:
+ *                     type: number
+ *                     example: 7.15
+ *                   turbidite_pred:
+ *                     type: number
+ *                     example: 1.2
+ *                   temperature_pred:
+ *                     type: number
+ *                     example: 23.5
+ *                   qualite_score:
+ *                     type: number
+ *                     example: 85.0
+ *                   qualite_niveau:
+ *                     type: string
+ *                     example: Excellente
+ *                   risque_score:
+ *                     type: number
+ *                     example: 15.0
+ *                   risque_niveau:
+ *                     type: string
+ *                     example: Faible
+ *                   confidence:
+ *                     type: number
+ *                     example: 90.5
+ *       500:
+ *         description: Erreur serveur
+ */
 app.get('/api/predictions', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 100;
-    const query = `
+    const date = req.query.date; // Nouveau paramètre pour filtrer par date
+
+    let query = `
       SELECT 
         id,
         timestamp,
         zone_id,
+        ph_pred,
+        turbidite_pred,
+        temperature_pred,
         qualite_score,
         qualite_niveau,
         risque_score,
         risque_niveau,
-        prediction_score,
-        ph_pred,
-        turbidite_pred,
-        temperature_pred,
         prediction_horizon,
-        confidence
+        confidence,
+        model_version
       FROM predictions_qualite
-      ORDER BY timestamp DESC
-      LIMIT $1
     `;
-    const result = await dbClient.query(query, [limit]);
+
+
+    const params = [];
+
+    // Si une date est spécifiée, filtrer par cette date
+    if (date) {
+      // Convertir la date en objet Date pour validation
+      const targetDate = new Date(date);
+      if (isNaN(targetDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
+      }
+
+      // Ajouter la condition WHERE pour filtrer par date
+      query += ` WHERE DATE(timestamp) = $1`;
+      params.push(date);
+
+      // Ajouter le tri par timestamp
+      query += ` ORDER BY timestamp ASC`;
+    } else {
+      // Tri par défaut par timestamp décroissant
+      query += ` ORDER BY timestamp DESC`;
+    }
+
+    // Ajouter la limite
+    query += ` LIMIT $${params.length + 1}`;
+    params.push(limit);
+
+    const result = await dbClient.query(query, params);
     res.json(result.rows);
   } catch (error) {
     console.error('Erreur:', error);
@@ -168,7 +383,57 @@ app.get('/api/predictions', async (req, res) => {
   }
 });
 
-// GET /api/alertes - Récupérer les alertes
+/**
+ * @swagger
+ * /api/alertes:
+ *   get:
+ *     summary: Récupérer les alertes de dépassement OMS
+ *     tags: [Alertes]
+ *     parameters:
+ *       - in: query
+ *         name: severity
+ *         schema:
+ *           type: string
+ *           enum: [CRITICAL, WARNING]
+ *         description: Filtrer par niveau de sévérité
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Nombre maximum de résultats
+ *     responses:
+ *       200:
+ *         description: Liste des alertes actives
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   severity:
+ *                     type: string
+ *                     example: CRITICAL
+ *                   zone:
+ *                     type: string
+ *                     example: Marrakech
+ *                   parametre:
+ *                     type: string
+ *                     example: ph
+ *                   valeur:
+ *                     type: number
+ *                     example: 5.5
+ *                   seuil_oms:
+ *                     type: number
+ *                     example: 6.5
+ *                   message:
+ *                     type: string
+ *       500:
+ *         description: Erreur serveur
+ */
 app.get('/api/alertes', async (req, res) => {
   try {
     const alertesDb = new Client({
@@ -201,7 +466,7 @@ app.get('/api/alertes', async (req, res) => {
       FROM alertes
     `;
     const params = [];
-    
+
     if (severity) {
       query += ` WHERE severity = $1 AND status = 'ACTIVE'`;
       params.push(severity);
@@ -211,10 +476,10 @@ app.get('/api/alertes', async (req, res) => {
       query += ` WHERE status = 'ACTIVE' ORDER BY timestamp DESC LIMIT $1`;
       params.push(limit);
     }
-    
+
     const result = await alertesDb.query(query, params);
     await alertesDb.end();
-    
+
     res.json(result.rows);
   } catch (error) {
     console.error('Erreur:', error);
@@ -222,14 +487,64 @@ app.get('/api/alertes', async (req, res) => {
   }
 });
 
-// GET /api/stats - Statistiques globales
+/**
+ * @swagger
+ * /api/stats:
+ *   get:
+ *     summary: Récupérer les statistiques globales du système
+ *     tags: [Statistiques]
+ *     responses:
+ *       200:
+ *         description: Statistiques agrégées
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 capteurs:
+ *                   type: object
+ *                   properties:
+ *                     capteurs_uniques:
+ *                       type: integer
+ *                       example: 16
+ *                     total_mesures:
+ *                       type: integer
+ *                       example: 25000
+ *                     ph_moyen:
+ *                       type: string
+ *                       example: "7.15"
+ *                     turbidite_moyenne:
+ *                       type: string
+ *                       example: "1.25"
+ *                 satellite:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     chlorophylle_moyenne:
+ *                       type: string
+ *                 predictions:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     qualite_moyenne:
+ *                       type: string
+ *                 alertes:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *       500:
+ *         description: Erreur serveur
+ */
 app.get('/api/stats', async (req, res) => {
   try {
     const capteursResult = await dbClient.query('SELECT COUNT(DISTINCT capteur_id) as capteurs_uniques, COUNT(*) as total_mesures, AVG(ph) as avg_ph, AVG(turbidite) as avg_turb FROM donnees_capteurs').catch(() => ({ rows: [{ capteurs_uniques: '0', total_mesures: '0', avg_ph: null, avg_turb: null }] }));
     const satelliteResult = await dbClient.query('SELECT COUNT(*) as count, AVG(chlorophylle) as avg_chloro, AVG(ndwi) as avg_ndwi FROM donnees_satellite').catch(() => ({ rows: [{ count: '0', avg_chloro: null, avg_ndwi: null }] }));
     const predictionsResult = await dbClient.query('SELECT COUNT(*) as count, AVG(qualite_score) as avg_qualite FROM predictions_qualite').catch(() => ({ rows: [{ count: '0', avg_qualite: null }] }));
     const alertes = await getAlertesCount();
-    
+
     const capteurs = capteursResult.rows[0] || { capteurs_uniques: '0', total_mesures: '0', avg_ph: null, avg_turb: null };
     const satellite = satelliteResult.rows[0] || { count: '0', avg_chloro: null };
     const predictions = predictionsResult.rows[0] || { count: '0', avg_qualite: null };
@@ -286,6 +601,7 @@ async function start() {
     await initDatabase();
     app.listen(PORT, () => {
       console.log(`🚀 API-SIG démarrée sur le port ${PORT}`);
+      console.log(`📚 Documentation Swagger: http://localhost:${PORT}/api-docs`);
       console.log(`📡 Endpoints disponibles:`);
       console.log(`   - GET /health`);
       console.log(`   - GET /api/capteurs`);

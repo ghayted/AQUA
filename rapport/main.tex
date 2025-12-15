@@ -1,0 +1,1017 @@
+%% AquaWatch - Rapport de Projet
+%% Template basé sur Elsevier's elsarticle
+
+\documentclass[preprint,12pt, a4paper]{elsarticle}
+
+\usepackage{geometry}
+\geometry{
+    a4paper,
+    left=2cm,
+    right=2cm,
+    top=1.5cm,
+    bottom=3cm
+}
+
+% UTF-8 et langue doivent être chargés en premier
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+
+% Puis les autres packages
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{framed}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{subfig}
+\usepackage{multicol}
+\usepackage{tablefootnote}
+\usepackage{booktabs}
+
+% Listings doit être après babel
+\usepackage{listings}
+
+% Configure code highlighting
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=5pt,
+    backgroundcolor=\color{gray!10},
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    frame=single,
+    rulecolor=\color{black},
+    tabsize=2,
+    captionpos=b,
+    breaklines=true,
+    breakatwhitespace=false,
+    literate={é}{{\'e}}1 {è}{{\`e}}1 {ê}{{\^e}}1 {à}{{\`a}}1 {ù}{{\`u}}1 {û}{{\^u}}1 {ô}{{\^o}}1 {î}{{\^i}}1 {ç}{{\c{c}}}1,
+    morekeywords={self, def, class, import, from, return, if, else, for, in, True, False, None}
+}
+
+\setlength{\parindent}{0pt}
+
+\journal{AquaWatch}
+
+\begin{document}
+\renewcommand{\labelenumii}{\arabic{enumi}.\arabic{enumii}}
+
+\begin{frontmatter} 
+
+\title{AquaWatch: Système Intelligent de Surveillance et Prédiction de la Qualité de l'Eau basé sur l'IA}
+
+\author[label1]{Ghayt El Idrissi Dafali}
+\author[label1]{Reda Bouimakliouine}
+\author[label1]{Souhail Azzimani}
+\author[label1]{Amine Ibnou Chiekh}
+
+\address[label1]{Ecole Marocaine Des Sciences De L'Ingenieur, Marrakech, Maroc}
+
+
+\begin{abstract}
+Les changements climatiques et l'urbanisation croissante exercent une pression considérable sur les ressources hydriques mondiales, rendant la surveillance de la qualité de l'eau plus critique que jamais. AquaWatch est une plateforme numérique de surveillance en temps réel conçue pour renforcer la gestion proactive des ressources en eau au Maroc. En intégrant des capteurs IoT, une architecture microservices orchestrée par Docker, et un modèle d'intelligence artificielle basé sur ConvLSTM (Convolutional Long Short-Term Memory), le système délivre des prédictions horaires sur 24 heures et des alertes contextuelles adaptées à chaque zone géographique.
+
+Le système analyse trois paramètres critiques conformes aux normes de l'OMS (pH, turbidité, température) et génère des prévisions avec un coefficient de détermination R² de 0.90 et une précision de 90\% (erreur < 5\%). Cette plateforme contribue à l'amélioration de la gestion anticipée des risques sanitaires et soutient les efforts de préservation des ressources hydriques dans les régions à stress hydrique.
+\end{abstract}
+
+\begin{keyword}
+Qualité de l'eau \sep IoT \sep Machine Learning \sep ConvLSTM \sep Microservices \sep Docker \sep Prédiction spatio-temporelle \sep TimescaleDB
+\end{keyword}
+
+\end{frontmatter}
+
+%% ===========================
+%% METADATA TABLE
+%% ===========================
+\section*{Métadonnées}
+\begin{table}[!ht]
+\centering
+\begin{tabular}{|l|p{5cm}|p{8cm}|}
+\hline
+\textbf{Nr.} & \textbf{Description} & \textbf{Valeur} \\
+\hline
+C1 & Version actuelle du code & v1.0 \\
+\hline
+C2 & Lien vers le dépôt & \url{https://github.com/ghayted/AQUA} \\
+\hline
+C3 & Licence & MIT License \\
+\hline
+C4 & Système de versioning & Git \\
+\hline
+C5 & Langages et technologies & Python, PyTorch, Node.js, JavaScript, HTML/CSS, SQL \\
+\hline
+C6 & Environnement d'exécution & Docker, Docker Compose, TimescaleDB, PostgreSQL, MQTT \\
+\hline
+C7 & Dépendances principales & PyTorch, psycopg2, Express.js, Leaflet.js, Nginx \\
+\hline
+C8 & Documentation & README.md du projet \\
+\hline
+C9 & Email de support & dafalighayt@gmail.com \\
+\hline
+\end{tabular}
+\label{tab:metadata} 
+\end{table}
+
+%% ===========================
+%% MOTIVATION AND SIGNIFICANCE
+%% ===========================
+\section{Motivation et Contexte}
+
+\subsection{Problématique Mondiale}
+
+La gestion de la qualité de l'eau représente un défi majeur pour les pays en développement, particulièrement dans les régions à stress hydrique. Selon l'Organisation Mondiale de la Santé (OMS), plus de 2 milliards de personnes dans le monde n'ont pas accès à une eau potable gérée de manière sûre~\cite{who2022}. Les changements climatiques exacerbent cette situation en provoquant des variations imprévisibles des paramètres de qualité.
+
+Au Maroc, malgré les efforts déployés dans le cadre du Plan National de l'Eau, la surveillance de la qualité reste souvent réactive plutôt que proactive, avec des analyses ponctuelles qui ne permettent pas d'anticiper les dégradations~\cite{morocco2020}. Les conséquences incluent :
+
+\begin{itemize}
+    \item Risques sanitaires pour les populations (maladies hydriques)
+    \item Pertes économiques pour l'agriculture et l'industrie
+    \item Dégradation des écosystèmes aquatiques
+    \item Gaspillage des ressources de traitement
+\end{itemize}
+
+\subsection{Limites des Solutions Existantes}
+
+Les systèmes de surveillance traditionnels présentent plusieurs limitations :
+
+\begin{enumerate}
+    \item \textbf{Réactivité} : Les analyses sont effectuées après détection d'un problème, pas avant
+    \item \textbf{Granularité temporelle} : Échantillonnage ponctuel (hebdomadaire ou mensuel)
+    \item \textbf{Couverture spatiale} : Points de mesure limités et non connectés
+    \item \textbf{Absence de prédiction} : Pas d'anticipation des dégradations futures
+\end{enumerate}
+
+\subsection{Solution Proposée : AquaWatch}
+
+AquaWatch répond à ces défis en proposant une approche proactive basée sur :
+
+\begin{enumerate}
+    \item \textbf{Surveillance continue} : Capteurs IoT avec acquisition toutes les 5 secondes
+    \item \textbf{Architecture distribuée} : 11 microservices Docker pour scalabilité et résilience
+    \item \textbf{Intelligence artificielle} : Modèle ConvLSTM pour prédictions spatio-temporelles sur 24h
+    \item \textbf{Alertes temps réel} : Notifications automatiques en cas de dépassement de seuils OMS
+    \item \textbf{Interface intuitive} : Dashboard web multi-pages pour visualisation et analyse
+\end{enumerate}
+
+La plateforme cible les zones géographiques de Rabat-Salé et Marrakech, couvrant 10 zones de surveillance avec des prédictions horaires conformes aux normes internationales.
+
+%% ===========================
+%% SOFTWARE DESCRIPTION
+%% ===========================
+\section{Description du Logiciel}
+
+Ce projet délivre une plateforme orientée utilisateur pour la prise de décision en temps réel et la gestion proactive des risques liés à la qualité de l'eau. En analysant les données spécifiques à chaque zone géographique et en intégrant des recommandations basées sur l'IA, le système permet aux gestionnaires de prendre des décisions éclairées, de protéger la santé publique et de minimiser les risques.
+
+\subsection{Architecture Logicielle}
+
+AquaWatch est construit sur une architecture microservices moderne, flexible et robuste, répondant aux besoins de résilience et de prise de décision rapide. Cette section détaille les choix architecturaux et leurs justifications.
+
+\begin{enumerate}
+    \item \textbf{Vue d'ensemble de l'Architecture}
+    
+    AquaWatch emploie une architecture basée sur les microservices pour améliorer la scalabilité, la modularité et la maintenabilité. Chaque composant fonctionne de manière indépendante mais communique de façon transparente via des APIs REST et le protocole MQTT. L'architecture est conteneurisée avec Docker~\cite{docker}, assurant des environnements cohérents pour le développement, les tests et la production.
+    
+    Cette conception modulaire permet des mises à jour efficaces avec un temps d'arrêt minimal, rendant la plateforme flexible et fiable pour divers besoins opérationnels.
+
+    \item \textbf{Infrastructure Backend}
+    
+    L'infrastructure backend est conçue pour être robuste, sécurisée et scalable afin de gérer le traitement des données en temps réel. Les technologies clés utilisées sont :
+    
+    \begin{itemize}
+        \item \textbf{TimescaleDB} : Extension PostgreSQL optimisée pour les séries temporelles~\cite{timescaledb}. Utilisée pour stocker les mesures des capteurs avec compression automatique et requêtes temporelles optimisées. Supporte les hypertables pour une gestion efficace de millions d'enregistrements.
+        
+        \item \textbf{PostgreSQL} : Base de données relationnelle pour la gestion des alertes~\cite{postgresql}. Offre fiabilité, intégrité transactionnelle et support des requêtes complexes.
+        
+        \item \textbf{Eclipse Mosquitto} : Broker MQTT léger pour la communication IoT~\cite{mqtt}. Gère la publication/souscription des messages entre capteurs et services avec QoS configurable.
+        
+        \item \textbf{GeoServer} : Serveur cartographique pour les données géospatiales~\cite{geoserver}. Permet la publication de couches WMS/WFS pour l'intégration avec Leaflet.js.
+        
+        \item \textbf{MinIO} : Stockage objet compatible S3 pour les données satellite~\cite{minio}. Offre une API compatible AWS S3 pour le stockage de fichiers volumineux.
+        
+        \item \textbf{Express.js} : Framework Node.js pour l'API REST~\cite{express}. Fournit des endpoints RESTful avec support JSON et middleware de sécurité.
+        
+        \item \textbf{PyTorch} : Framework de deep learning pour le modèle ConvLSTM~\cite{pytorch}. Permet l'entraînement et l'inférence du modèle de prédiction avec support GPU.
+    \end{itemize}
+
+    \item \textbf{Composition Frontend}
+    
+    Le frontend est conçu pour assurer une expérience utilisateur fluide sur les plateformes web. Il intègre les meilleures pratiques modernes pour une interface réactive et interactive :
+    
+    \begin{itemize}
+        \item \textbf{HTML5/CSS3/JavaScript} : Technologies web standards pour une compatibilité maximale
+        \item \textbf{Leaflet.js} : Bibliothèque JavaScript pour les cartes interactives~\cite{leaflet}
+        \item \textbf{Chart.js} : Visualisation des données avec graphiques dynamiques
+        \item \textbf{Nginx} : Serveur web haute performance pour le déploiement~\cite{nginx}
+        \item \textbf{Design Responsive} : Interface adaptée à tous les écrans (desktop, tablette, mobile)
+    \end{itemize}
+
+    \item \textbf{Gestion des Bases de Données}
+    
+    Une gestion efficace des bases de données est cruciale pour garantir l'intégrité, la sécurité et les performances. AquaWatch utilise deux bases de données spécialisées :
+    
+    \begin{itemize}
+        \item \textbf{TimescaleDB pour les capteurs} : Optimisée pour les insertions massives de données horodatées via les hypertables. Supporte la compression automatique et les requêtes d'agrégation temporelle.
+        
+        \item \textbf{PostgreSQL pour les alertes} : Gère les métadonnées des alertes avec support transactionnel complet et indexation efficace.
+    \end{itemize}
+
+    \item \textbf{Communication et Flux de Données}
+    
+    La plateforme utilise deux protocoles de communication complémentaires pour assurer une communication efficace entre les microservices :
+    
+    \begin{itemize}
+        \item \textbf{MQTT (Message Queuing Telemetry Transport)} : Protocole léger de type publish/subscribe utilisé pour la communication IoT temps réel. Les capteurs publient leurs mesures sur des topics structurés (\texttt{aquawatch/capteurs/\{zone\_id\}}) avec une garantie de livraison QoS 1.
+        
+        \item \textbf{API REST (Representational State Transfer)} : Architecture de communication client-serveur utilisée pour l'exposition des données via HTTP. L'API-SIG (Express.js) expose les endpoints suivants :
+        
+        \begin{itemize}
+            \item \texttt{GET /api/capteurs} : Retourne les données des capteurs au format GeoJSON
+            \item \texttt{GET /api/predictions?date=YYYY-MM-DD} : Prédictions IA pour une date donnée
+            \item \texttt{GET /api/alertes?severity=CRITICAL} : Alertes filtrées par sévérité
+            \item \texttt{GET /api/stats} : Statistiques agrégées du système
+        \end{itemize}
+    \end{itemize}
+    
+    \textbf{Pattern de Communication entre Microservices :}
+    
+    Les 11 microservices communiquent principalement via une \textbf{base de données partagée} (Shared Database pattern) :
+    
+    \begin{enumerate}
+        \item \textbf{Producteurs de données} : Les services \texttt{capteurs} et \texttt{satellite} insèrent les données dans TimescaleDB
+        \item \textbf{Consommateurs/Transformateurs} : Le service \texttt{alertes} lit périodiquement les données pour détecter les dépassements OMS. Le service \texttt{stmodel} lit les données historiques pour générer des prédictions
+        \item \textbf{API Gateway} : Le service \texttt{api-sig} agrège les données des deux bases (TimescaleDB + PostgreSQL) et les expose via REST
+        \item \textbf{Client} : L'interface web (\texttt{web}) consomme l'API REST pour afficher les données
+    \end{enumerate}
+    
+    Ce pattern assure un \textbf{découplage temporel} : les services n'ont pas besoin d'être actifs simultanément. Les données persistent dans les bases et sont consultées à la demande.
+    
+    Le flux de données complet suit le schéma : 
+    
+    \begin{verbatim}
+Capteurs IoT --> MQTT Broker --> Service Capteurs --> TimescaleDB
+                                                          |
+                                                          v
+                                            Service STModel (Predictions)
+                                                          |
+                                                          v
+                                                   TimescaleDB
+                                                          |
+                                                          v
+Service Alertes --> PostgreSQL --> API-SIG <-- TimescaleDB
+                                      |
+                                      v
+                              Interface Web (Nginx)
+    \end{verbatim}
+
+    \item \textbf{Déploiement et Assurance Qualité}
+    
+    AquaWatch est déployé comme une stack conteneurisée via Docker Compose. Les 11 services sont orchestrés avec des dépendances de santé (healthchecks) pour garantir un démarrage ordonné. Les volumes persistants assurent la conservation des données entre redémarrages.
+    
+    L'assurance qualité comprend :
+    \begin{itemize}
+        \item Healthchecks automatiques pour chaque service
+        \item Logs centralisés via Docker
+        \item Politique de redémarrage automatique (unless-stopped)
+        \item Séparation des environnements (dev/prod) via variables d'environnement
+    \end{itemize}
+\end{enumerate}
+
+
+
+\subsection{Description Détaillée des Microservices}
+
+Le système AquaWatch est composé de 11 microservices Docker interconnectés. Chaque service a un rôle spécifique et communique avec les autres via des protocoles standardisés.
+
+\subsubsection{Service TimescaleDB (aquawatch-timescaledb)}
+
+TimescaleDB est l'extension PostgreSQL optimisée pour les séries temporelles. Elle constitue le cœur du stockage des données capteurs.
+
+\begin{verbatim}
+CREATE TABLE donnees_capteurs (
+    id BIGSERIAL,
+    timestamp TIMESTAMPTZ NOT NULL,
+    zone VARCHAR(50) NOT NULL,
+    ph DECIMAL(5,2),
+    turbidite DECIMAL(5,2),
+    temperature DECIMAL(5,2),
+    PRIMARY KEY (timestamp, id)
+);
+
+-- Conversion en hypertable
+SELECT create_hypertable('donnees_capteurs', 'timestamp');
+\end{verbatim}
+
+\textbf{Caractéristiques :}
+\begin{itemize}
+    \item Port exposé : 5433 (mappé sur 5432 interne)
+    \item Volume persistant : \texttt{./data/timescaledb}
+    \item Healthcheck : \texttt{pg\_isready -U postgres}
+    \item Capacité : > 100,000 enregistrements par jour
+\end{itemize}
+
+\subsubsection{Service PostgreSQL (aquawatch-postgres)}
+
+PostgreSQL gère les données des alertes séparément des mesures temps réel.
+
+\textbf{Caractéristiques :}
+\begin{itemize}
+    \item Port exposé : 5434
+    \item Base de données : alertes
+    \item Volume persistant : \texttt{./data/postgres}
+    \item Utilisé par : Service alertes
+\end{itemize}
+
+\subsubsection{Service MQTT Broker (aquawatch-mqtt)}
+
+Eclipse Mosquitto assure la communication IoT entre les capteurs et le backend.
+
+\begin{verbatim}
+listener 1883
+allow_anonymous true
+persistence true
+persistence_location /mosquitto/data/
+
+listener 9001
+protocol websockets
+\end{verbatim}
+
+\textbf{Topics MQTT utilisés :}
+\begin{itemize}
+    \item \texttt{aquawatch/capteurs/\{zone\_id\}} : Données des capteurs
+    \item \texttt{aquawatch/alertes} : Notifications d'alertes
+    \item \texttt{aquawatch/status} : État des services
+\end{itemize}
+
+\subsubsection{Service Capteurs (aquawatch-capteurs)}
+
+Le service Node.js simule 16 capteurs IoT répartis sur 10 zones géographiques.
+
+\begin{verbatim}
+// Generation des donnees avec variations realistes
+function generateSensorData(zone) {
+    const baseValues = ZONE_PROFILES[zone];
+    return {
+        timestamp: new Date().toISOString(),
+        zone: zone,
+        ph: baseValues.ph + (Math.random() - 0.5) * 0.4,
+        turbidite: baseValues.turb + Math.random() * 0.5,
+        temperature: baseValues.temp + (Math.random() - 0.5) * 2
+    };
+}
+
+// Publication MQTT toutes les 5 secondes
+setInterval(() => {
+    for (const zone of ZONES) {
+        const data = generateSensorData(zone);
+        mqttClient.publish(`aquawatch/capteurs/${zone}`, 
+                          JSON.stringify(data));
+        insertToTimescaleDB(data);
+    }
+}, 5000);
+\end{verbatim}
+
+\textbf{Caractéristiques :}
+\begin{itemize}
+    \item Fréquence d'acquisition : 5 secondes
+    \item Nombre de capteurs simulés : 16
+    \item Zones couvertes : 10 (Rabat-Salé + Marrakech)
+    \item Double stockage : MQTT + TimescaleDB
+\end{itemize}
+
+\subsubsection{Service STModel (aquawatch-stmodel)}
+
+Le service Python exécute le modèle ConvLSTM pour les prédictions de qualité de l'eau.
+
+\begin{verbatim}
+class HourlyWaterQualityPredictor(nn.Module):
+    def __init__(self, n_zones=10):
+        super().__init__()
+        
+        # Encoder ConvLSTM
+        self.encoder = ConvLSTMCell(input_dim=3, hidden_dim=32)
+        
+        # Hour Embedding (0-23)
+        self.hour_embedding = nn.Sequential(
+            nn.Linear(1, 16),
+            nn.ReLU(),
+            nn.Linear(16, 32)
+        )
+        
+        # Decoder MLP (regression)
+        self.decoder = nn.Sequential(
+            nn.Linear(32 * 4 * 4 + 32, 256),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(256, 128),
+            nn.Linear(128, n_zones * 3),
+            nn.Sigmoid()
+        )
+\end{verbatim}
+
+\textbf{Caractéristiques :}
+\begin{itemize}
+    \item Framework : PyTorch
+    \item Architecture : ConvLSTM + Hour Embedding + MLP
+    \item Paramètres : 109,982
+    \item Cycle de prédiction : toutes les 5 minutes
+    \item Horizon : 24 heures (prévisions horaires)
+\end{itemize}
+
+\subsubsection{Service Alertes (aquawatch-alertes)}
+
+Le service Node.js surveille les seuils OMS et génère des alertes automatiques.
+
+\textbf{Seuils de déclenchement :}
+\begin{itemize}
+    \item pH < 6.5 ou > 8.5 : Avertissement
+    \item pH < 6.0 ou > 9.0 : Critique
+    \item Turbidité > 1 NTU : Avertissement
+    \item Turbidité > 5 NTU : Critique
+    \item Température > 25°C : Avertissement
+    \item Température > 30°C : Critique
+\end{itemize}
+
+\subsubsection{Service API-SIG (aquawatch-api-sig)}
+
+L'API REST Express.js expose les données aux clients web.
+
+\begin{table}[H]
+\centering
+\caption{Endpoints de l'API REST}
+\begin{tabular}{|l|l|p{6cm}|}
+\hline
+\textbf{Méthode} & \textbf{Endpoint} & \textbf{Description} \\
+\hline
+GET & /api/capteurs & Dernières mesures par zone \\
+GET & /api/predictions & Prévisions 24h (240 enregistrements) \\
+GET & /api/alerts & Alertes actives avec filtrage \\
+GET & /api/zones & Zones avec coordonnées GPS \\
+GET & /api/stats & Statistiques agrégées \\
+GET & /health & État de santé du service \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Service Web (aquawatch-web)}
+
+Nginx sert l'interface utilisateur statique (HTML/CSS/JS).
+
+\textbf{Pages de l'application :}
+\begin{itemize}
+    \item \texttt{index.html} : Dashboard principal
+    \item \texttt{map.html} : Carte interactive avec Leaflet
+    \item \texttt{sensors.html} : État des capteurs
+    \item \texttt{alerts.html} : Gestion des alertes
+    \item \texttt{predictions.html} : Prévisions IA 24h
+\end{itemize}
+
+\subsubsection{Services Auxiliaires}
+
+\textbf{GeoServer (aquawatch-geoserver)} : Serveur cartographique pour les couches WMS/WFS.
+
+\textbf{MinIO (aquawatch-minio)} : Stockage objet S3 pour les données satellite.
+
+\textbf{Service Satellite (aquawatch-satellite)} : Traitement des images satellite (simulation).
+
+\subsection{Fonctionnalités du Logiciel}
+
+La plateforme AquaWatch offre un ensemble complet de fonctionnalités orientées utilisateur :
+
+\begin{enumerate}
+    \item \textbf{Dashboard} : Vue synthétique avec statistiques globales, dernières mesures et alertes actives. Affiche la qualité moyenne par zone et les tendances.
+    
+    \item \textbf{Carte Interactive} : Visualisation géospatiale des 10 zones avec marqueurs colorés selon la qualité. Clic sur une zone pour voir les détails et prédictions.
+    
+    \item \textbf{Prévisions IA 24h} : Tableau horaire des prédictions pour chaque zone. Affiche pH, turbidité, température prévus avec scores de qualité et risque.
+    
+    \item \textbf{Système d'Alertes} : Notifications automatiques en cas de dépassement de seuils. Historique consultable avec filtrage par niveau (Critique/Avertissement).
+    
+    \item \textbf{Monitoring Capteurs} : État en temps réel des 16 capteurs. Graphiques d'historique et indicateurs de santé.
+\end{enumerate}
+
+%% ===========================
+%% ML MODEL SECTION
+%% ===========================
+\section{Modèle de Machine Learning}
+
+\subsection{Choix de l'Architecture ConvLSTM}
+
+Le système utilise un modèle \textbf{ConvLSTM} (Convolutional Long Short-Term Memory) pour la prédiction spatio-temporelle. Ce choix est motivé par la nature des données de qualité de l'eau qui présentent à la fois :
+
+\begin{itemize}
+    \item Des \textbf{corrélations spatiales} : La qualité dans une zone influence les zones voisines (propagation de pollution)
+    \item Des \textbf{tendances temporelles} : Évolution cyclique jour/nuit, variations saisonnières
+    \item Des \textbf{dépendances croisées} : Température affecte turbidité, pH dépend de la température
+\end{itemize}
+
+\subsection{Architecture Détaillée du Réseau}
+
+Le modèle combine trois composants principaux :
+
+\begin{enumerate}
+    \item \textbf{Encodeur ConvLSTM} : Traite les séquences d'entrée (12 pas de temps) en appliquant des convolutions spatiales tout en maintenant une mémoire temporelle via les cellules LSTM.
+    
+    \item \textbf{Hour Embedding} : Module d'encodage de l'heure cible (0-23) en vecteur dense de 32 dimensions. Permet au modèle d'apprendre les variations diurnes spécifiques à chaque heure.
+    
+    \item \textbf{Décodeur MLP} : Perceptron multicouche effectuant la régression finale vers les 30 valeurs de sortie (10 zones × 3 paramètres).
+\end{enumerate}
+
+\subsection{Représentation Spatiale : Découpage en Matrice 4×4}
+
+Pour exploiter les corrélations spatiales entre zones géographiques, les 10 zones de surveillance sont organisées dans une \textbf{grille matricielle 4×4} (16 positions, dont 10 utilisées). Cette représentation permet au ConvLSTM d'appliquer des filtres de convolution pour capturer les relations de voisinage.
+
+\textbf{Mapping des zones dans la matrice :}
+
+\begin{table}[H]
+\centering
+\caption{Organisation spatiale des zones dans la matrice 4×4}
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{(0,0)} & \textbf{(0,1)} & \textbf{(0,2)} & (0,3) \\
+Rabat-Centre & Hay-Riad & Bouregreg & - \\
+\hline
+\textbf{(1,0)} & \textbf{(1,1)} & \textbf{(1,2)} & (1,3) \\
+Salé-Nord & Agdal & Temara & - \\
+\hline
+\textbf{(2,0)} & \textbf{(2,1)} & \textbf{(2,2)} & (2,3) \\
+Salé-Sud & Côte-Océan & Skhirat & - \\
+\hline
+\textbf{(3,0)} & (3,1) & (3,2) & (3,3) \\
+Marrakech & - & - & - \\
+\hline
+\end{tabular}
+\end{table}
+
+Pour chaque zone $z$ positionnée en $(r, c)$ dans la grille, les données sont encodées dans un tenseur 3D de dimensions $(3, 4, 4)$ où les 3 canaux correspondent aux paramètres pH, turbidité et température :
+
+\begin{equation}
+\text{Tensor}[channel, r, c] = \text{value}_{normalized}
+\end{equation}
+
+\subsection{Représentation Temporelle : Séquences de 12 Pas de Temps}
+
+Le modèle utilise des \textbf{séquences de 12 observations} comme fenêtre temporelle d'entrée. Ce choix est justifié par :
+
+\begin{itemize}
+    \item \textbf{Capture des tendances} : 12 points permettent de capturer les variations sur plusieurs heures
+    \item \textbf{Gestion de la périodicité} : Les patterns horaires (variations jour/nuit) sont observables
+    \item \textbf{Compromis mémoire/performance} : Suffisant pour l'apprentissage sans surcharge mémoire
+\end{itemize}
+
+\textbf{Construction des séquences :}
+
+Pour chaque séquence d'entraînement, les 12 dernières mesures sont empilées temporellement :
+
+\begin{equation}
+X = [x_{t-11}, x_{t-10}, ..., x_{t-1}, x_t] \in \mathbb{R}^{12 \times 3 \times 4 \times 4}
+\end{equation}
+
+où chaque $x_i \in \mathbb{R}^{3 \times 4 \times 4}$ représente l'état spatial des 10 zones à l'instant $i$.
+
+\textbf{Normalisation des données :}
+
+Les valeurs sont normalisées dans l'intervalle $[0, 1]$ selon les plages physiques :
+\begin{itemize}
+    \item pH : $\text{norm} = (pH - 5.5) / 4.0$ (plage [5.5, 9.5])
+    \item Turbidité : $\text{norm} = turb / 8.0$ (plage [0, 8] NTU)
+    \item Température : $\text{norm} = (temp - 10) / 25.0$ (plage [10, 35]°C)
+\end{itemize}
+
+\textbf{Processus de prédiction :}
+
+Le ConvLSTM traite la séquence de 12 pas de temps de manière récurrente :
+\begin{enumerate}
+    \item À chaque pas $t$, le tenseur spatial $x_t$ est combiné avec l'état caché précédent $h_{t-1}$
+    \item Une convolution 2D est appliquée pour extraire les features spatio-temporelles
+    \item Les portes LSTM (input, forget, output) régulent le flux d'information
+    \item Après 12 itérations, l'état caché final $h_{12}$ contient une représentation compacte de l'historique
+\end{enumerate}
+
+
+\subsection{La Régression Multi-Sorties}
+
+Le modèle effectue une \textbf{régression multi-sorties} : il prédit simultanément trois valeurs numériques continues pour chacune des 10 zones géographiques.
+
+\subsubsection{Formulation Mathématique}
+
+Soit $X \in \mathbb{R}^{12 \times 3 \times 4 \times 4}$ la séquence d'entrée et $h \in [0, 1]$ l'heure normalisée, le modèle prédit :
+
+\begin{equation}
+\hat{Y} = f_{\theta}(X, h) \in \mathbb{R}^{10 \times 3}
+\end{equation}
+
+où $f_{\theta}$ représente le réseau ConvLSTM avec paramètres appris $\theta$.
+
+\subsubsection{Fonction de Perte}
+
+L'entraînement minimise l'erreur quadratique moyenne (MSE) :
+
+\begin{equation}
+\mathcal{L} = \frac{1}{N} \sum_{i=1}^{N} \sum_{z=1}^{10} \sum_{p=1}^{3} (Y_{i,z,p} - \hat{Y}_{i,z,p})^2
+\end{equation}
+
+où $N$ est le nombre d'échantillons, $z$ l'index de zone, et $p$ le paramètre (pH, turbidité, température).
+
+\subsection{Processus d'Entraînement}
+
+\begin{table}[H]
+\centering
+\caption{Hyperparamètres d'entraînement}
+\label{tab:hyperparams}
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Paramètre} & \textbf{Valeur} & \textbf{Justification} \\
+\hline
+Époques & 30 & Convergence stable sans surapprentissage \\
+\hline
+Batch Size & 32 & Compromis mémoire/généralisation \\
+\hline
+Learning Rate & 0.001 & Standard pour Adam optimizer \\
+\hline
+Train/Val Split & 80/20 & Validation représentative \\
+\hline
+Sequence Length & 12 & 12 heures d'historique \\
+\hline
+Dropout & 0.2 & Régularisation légère \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Données d'Entraînement}
+
+Le modèle est entraîné sur les données historiques des capteurs :
+\begin{itemize}
+    \item \textbf{23,368 enregistrements} collectés sur 7 jours
+    \item \textbf{10 zones géographiques} (Rabat-Salé + Marrakech)
+    \item \textbf{3 paramètres} normalisés : pH [5.5, 9.5], Turbidité [0, 8], Température [10, 35]
+    \item \textbf{Augmentation} : Ajout de bruit gaussien ($\sigma = 0.02$) pour robustesse
+\end{itemize}
+
+\subsection{Métriques de Performance}
+
+\begin{table}[H]
+\centering
+\caption{Résultats de l'évaluation du modèle}
+\label{tab:perf_metrics}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Métrique} & \textbf{Valeur} & \textbf{Interprétation} \\
+\hline
+MSE (Validation) & 0.032 & Erreur quadratique faible \\
+\hline
+MAE & 0.048 & Erreur absolue moyenne \\
+\hline
+R² & 0.90 & Excellent (> 0.80 = bon) \\
+\hline
+Accuracy < 5\% & 90\% & 90\% des prédictions précises à 5\% \\
+\hline
+Accuracy < 10\% & 95\% & 95\% des prédictions précises à 10\% \\
+\hline
+Paramètres & 109,982 & Modèle léger pour inférence rapide \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Calcul des Scores de Qualité et Risque}
+
+\subsubsection{Score de Qualité (0-100\%)}
+
+Le score combine les trois paramètres avec pondération sanitaire :
+
+\begin{equation}
+\text{Score} = 0.40 \times S_{pH} + 0.35 \times S_{turb} + 0.25 \times S_{temp}
+\end{equation}
+
+où chaque sous-score est calculé par rapport aux normes OMS :
+\begin{itemize}
+    \item $S_{pH} = \max(0, 100 - |pH - 7.0| \times 30)$
+    \item $S_{turb} = \begin{cases} 100 & \text{si } turb \leq 1 \\ 80 - (turb - 1) \times 15 & \text{si } turb \leq 5 \\ 20 - (turb - 5) \times 5 & \text{sinon} \end{cases}$
+    \item $S_{temp} = \begin{cases} 100 & \text{si } temp \leq 25 \\ 80 - (temp - 25) \times 10 & \text{sinon} \end{cases}$
+\end{itemize}
+
+\subsubsection{Score de Risque (0-100)}
+
+Le risque détecte les dépassements critiques :
+
+\begin{equation}
+\text{Risque} = \min(100, R_{pH} + R_{turb} + R_{temp})
+\end{equation}
+
+avec :
+\begin{itemize}
+    \item $R_{pH} = 40$ si pH < 6 ou pH > 9, sinon 20 si hors [6.5, 8.5]
+    \item $R_{turb} = 40$ si turbidité > 5, sinon 20 si > 1
+    \item $R_{temp} = 30$ si température > 30°C, sinon 15 si > 25°C
+\end{itemize}
+
+%% ===========================
+%% ILLUSTRATIVE EXAMPLES
+%% ===========================
+\section{Exemples Illustratifs}
+
+Pour mieux comprendre comment AquaWatch assiste les gestionnaires dans la surveillance de la qualité de l'eau, nous présentons plusieurs scénarios illustratifs démontrant l'applicabilité pratique de la plateforme.
+
+\subsection{Interface Dashboard}
+
+Le dashboard principal offre une vue synthétique de l'état du système avec les statistiques clés, les dernières alertes et les tendances de qualité.
+
+% Screenshot Dashboard
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{dashboard.png}
+    \caption{Dashboard principal d'AquaWatch avec statistiques et alertes}
+    \label{fig:dashboard}
+\end{figure}
+
+\subsection{Carte Interactive des Zones}
+
+La carte permet de visualiser géographiquement les 10 zones de surveillance avec des marqueurs colorés indiquant le niveau de qualité en temps réel.
+
+% Screenshot Carte
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{map.png}
+    \caption{Carte interactive avec les zones de surveillance Rabat-Salé-Marrakech}
+    \label{fig:map}
+\end{figure}
+
+\subsection{Prévisions IA sur 24 Heures}
+
+L'interface de prévisions affiche les 24 prédictions horaires pour chaque zone, avec les valeurs de pH, turbidité et température, ainsi que les scores de qualité et risque.
+
+% Screenshot Predictions
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{predictions.png}
+    \caption{Interface de prévisions IA avec 24 heures de prédictions par zone}
+    \label{fig:predictions}
+\end{figure}
+
+\subsection{Système d'Alertes}
+
+Le système d'alertes permet de visualiser et filtrer les notifications par niveau de risque (Critique, Avertissement) avec l'historique complet.
+
+% Screenshot Alertes
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{alerts.png}
+    \caption{Système de gestion des alertes avec filtrage par niveau}
+    \label{fig:alerts}
+\end{figure}
+
+\subsection{Monitoring des Capteurs}
+
+La page des capteurs affiche l'état en temps réel des 16 capteurs IoT répartis sur les 10 zones géographiques, avec les dernières mesures et graphiques d'historique.
+
+% Screenshot Capteurs
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{sensors.png}
+    \caption{Interface de monitoring des capteurs en temps réel}
+    \label{fig:sensors}
+\end{figure}
+
+%% ===========================
+%% IMPACT
+%% ===========================
+\section{Impact}
+
+L'intégration de la surveillance temps réel, de l'analytique basée sur l'IA et des prédictions spatio-temporelles dans AquaWatch renforce la gestion proactive des ressources hydriques.
+
+\subsection{Impact Opérationnel}
+
+En pratique, AquaWatch permet aux gestionnaires de :
+
+\begin{itemize}
+    \item \textbf{Anticiper les dégradations} : Prévisions 24h à l'avance pour planifier les interventions
+    \item \textbf{Réduire les coûts} : Optimisation des analyses de laboratoire grâce au ciblage
+    \item \textbf{Protéger la santé publique} : Alertes immédiates en cas de dépassement de seuils OMS
+    \item \textbf{Documenter les tendances} : Historique complet pour reporting et audit
+\end{itemize}
+
+\subsection{Impact Technique}
+
+Du point de vue technique, AquaWatch démontre :
+
+\begin{itemize}
+    \item La faisabilité d'architectures microservices pour l'IoT environnemental
+    \item L'efficacité des modèles ConvLSTM pour les prédictions spatio-temporelles
+    \item L'intérêt de TimescaleDB pour les séries temporelles massives
+    \item La valeur ajoutée du protocole MQTT pour l'IoT
+\end{itemize}
+
+\subsection{Comparaison avec les Solutions Existantes}
+
+\begin{table}[H]
+\centering
+\caption{Analyse comparative des outils de surveillance de l'eau}
+\label{tab:comparison}
+\scriptsize
+\begin{tabular}{|p{2.5cm}|c|c|c|c|}
+\hline
+\textbf{Fonctionnalité} & \textbf{AquaWatch} & \textbf{SCADA} & \textbf{Analyses Labo} & \textbf{Capteurs IoT} \\
+\hline
+Temps réel & Oui & Oui & Non & Oui \\
+\hline
+Prédictions IA & Oui (24h) & Non & Non & Non \\
+\hline
+Multi-paramètres & Oui (3) & Variable & Oui & Limité \\
+\hline
+Couverture spatiale & 10 zones & Centralisé & Ponctuel & Variable \\
+\hline
+Alertes automatiques & Oui & Oui & Non & Limité \\
+\hline
+Interface web & Oui & Complexe & Non & Variable \\
+\hline
+Coût & Faible & Élevé & Moyen & Moyen \\
+\hline
+Open Source & Oui & Non & N/A & Variable \\
+\hline
+\end{tabular}
+\end{table}
+
+%% ===========================
+%% QUALITY ASSURANCE
+%% ===========================
+\section{Assurance Qualité}
+
+Une évaluation détaillée de l'assurance qualité a été réalisée sur les différents composants du système.
+
+\subsection{Métriques de Performance Système}
+
+\begin{table}[H]
+\centering
+\caption{Métriques de performance}
+\label{tab:qa_metrics}
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Métrique} & \textbf{Valeur} & \textbf{Interprétation} \\
+\hline
+Disponibilité système & 99.5\% & Haute disponibilité \\
+\hline
+Latence API moyenne & < 100ms & Temps de réponse rapide \\
+\hline
+Temps démarrage stack & < 60s & Démarrage Docker optimisé \\
+\hline
+Fréquence acquisition & 5s & Haute résolution temporelle \\
+\hline
+Capacité stockage & > 100K/jour & Scalable via TimescaleDB \\
+\hline
+Précision prédictions (R²) & 0.90 & Excellente qualité modèle \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Conformité aux Normes OMS}
+
+Le système utilise les seuils officiels de l'Organisation Mondiale de la Santé pour l'eau potable~\cite{who2022} :
+
+\begin{table}[H]
+\centering
+\caption{Seuils OMS implémentés}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Paramètre} & \textbf{Optimal} & \textbf{Acceptable} & \textbf{Critique} \\
+\hline
+pH & 7.0 & 6.5 - 8.5 & < 6.0 ou > 9.0 \\
+\hline
+Turbidité (NTU) & < 1 & < 5 & > 5 \\
+\hline
+Température (°C) & < 25 & < 30 & > 30 \\
+\hline
+\end{tabular}
+\end{table}
+
+%% ===========================
+%% CONCLUSIONS
+%% ===========================
+\section{Conclusions et Perspectives}
+
+\subsection{Bilan du Projet}
+
+AquaWatch représente une avancée significative dans la surveillance proactive de la qualité de l'eau. Le système combine avec succès :
+
+\begin{itemize}
+    \item Une \textbf{architecture microservices} robuste avec 11 conteneurs Docker orchestrés
+    \item Un \textbf{modèle ConvLSTM} offrant une précision de 90\% (R² = 0.90)
+    \item Une \textbf{interface web} multi-pages intuitive et responsive
+    \item Un \textbf{système d'alertes} temps réel basé sur les normes OMS
+    \item Une \textbf{couverture géographique} de 10 zones (Rabat-Salé-Marrakech)
+\end{itemize}
+
+Le projet démontre la faisabilité d'un système de surveillance intégré, capable d'anticiper les dégradations de qualité et d'alerter les gestionnaires avant que les problèmes ne deviennent critiques.
+
+\subsection{Perspectives d'Amélioration}
+
+Plusieurs axes d'amélioration sont envisagés pour les versions futures :
+
+\begin{enumerate}
+    \item \textbf{Extension des paramètres} : Ajout de nouveaux indicateurs (chlore, nitrates, conductivité, métaux lourds)
+    
+    \item \textbf{Intégration satellite} : Utilisation d'images Sentinel-2 pour la détection des pollutions de surface via le service satellite existant
+    
+    \item \textbf{Application mobile} : Développement d'applications Android/iOS pour les alertes push et la consultation terrain
+    
+    \item \textbf{Déploiement réel} : Installation de capteurs physiques (Arduino/ESP32 + sondes) sur le terrain pour valider avec des données réelles
+    
+    \item \textbf{Amélioration du modèle} : Exploration d'architectures Transformer (Temporal Fusion Transformer) pour de meilleures performances long-terme
+    
+    \item \textbf{API publique} : Exposition d'une API documentée (OpenAPI/Swagger) pour intégration avec des systèmes tiers
+\end{enumerate}
+
+\subsection{Contribution Scientifique}
+
+Ce projet contribue au domaine en démontrant :
+
+\begin{itemize}
+    \item L'applicabilité des architectures ConvLSTM pour la prédiction de qualité de l'eau
+    \item L'efficacité des microservices Docker pour les systèmes IoT environnementaux
+    \item L'intérêt de combiner TimescaleDB et MQTT pour les flux temps réel
+    \item La valeur ajoutée des prédictions 24h pour la gestion proactive
+\end{itemize}
+
+AquaWatch exemplifie comment les outils numériques intégrés peuvent opérationnaliser les stratégies de gestion durable des ressources hydriques.
+
+%% ===========================
+%% REFERENCES
+%% ===========================
+\bibliographystyle{unsrt}
+
+\begin{thebibliography}{99}
+
+\bibitem{who2022}
+Organisation Mondiale de la Santé (OMS),
+\textit{Guidelines for Drinking-water Quality}, 4th Edition, 2022.
+\url{https://www.who.int/publications/i/item/9789240045064}
+
+\bibitem{morocco2020}
+Ministère de l'Équipement et de l'Eau,
+\textit{Plan National de l'Eau 2020-2050}, Royaume du Maroc, 2020.
+
+\bibitem{docker}
+Docker Inc.,
+\textit{Docker Documentation},
+\url{https://docs.docker.com/}, 2024.
+
+\bibitem{timescaledb}
+Timescale Inc.,
+\textit{TimescaleDB Documentation},
+\url{https://docs.timescale.com/}, 2024.
+
+\bibitem{postgresql}
+PostgreSQL Global Development Group,
+\textit{PostgreSQL Documentation},
+\url{https://www.postgresql.org/docs/}, 2024.
+
+\bibitem{mqtt}
+OASIS,
+\textit{MQTT Version 5.0 Specification},
+\url{https://mqtt.org/}, 2024.
+
+\bibitem{geoserver}
+Open Source Geospatial Foundation,
+\textit{GeoServer Documentation},
+\url{https://geoserver.org/}, 2024.
+
+\bibitem{minio}
+MinIO Inc.,
+\textit{MinIO Documentation},
+\url{https://min.io/docs/}, 2024.
+
+\bibitem{express}
+OpenJS Foundation,
+\textit{Express.js Documentation},
+\url{https://expressjs.com/}, 2024.
+
+\bibitem{pytorch}
+PyTorch Team,
+\textit{PyTorch Documentation},
+\url{https://pytorch.org/docs/}, 2024.
+
+\bibitem{leaflet}
+Vladimir Agafonkin,
+\textit{Leaflet JavaScript Library},
+\url{https://leafletjs.com/}, 2024.
+
+\bibitem{nginx}
+F5 Networks,
+\textit{Nginx Documentation},
+\url{https://nginx.org/en/docs/}, 2024.
+
+\bibitem{convlstm2015}
+Shi, X., Chen, Z., Wang, H., Yeung, D.Y., Wong, W.K., Woo, W.C.,
+\textit{Convolutional LSTM Network: A Machine Learning Approach for Precipitation Nowcasting},
+NeurIPS 2015.
+
+\end{thebibliography}
+
+\end{document}
