@@ -505,8 +505,9 @@ def run_hourly_predictions(model, conn, sensor_data, data_quality=None):
     
     model.eval()
     
-    for hour in range(24):
-        target_time = tomorrow_midnight + timedelta(hours=hour)
+    for h_idx in range(-1, 23):
+        hour = h_idx % 24
+        target_time = tomorrow_midnight + timedelta(hours=h_idx)
         
         # Variation horaire basée sur des patterns physiques réalistes
         # Température: plus chaude le jour (12h-15h), plus froide la nuit
@@ -563,14 +564,14 @@ def run_hourly_predictions(model, conn, sensor_data, data_quality=None):
                   risk_score, risk_niveau, hour, confidence))
             total_inserted += 1
         
-        if hour % 6 == 0:
-            print(f'   ⏰ {hour:02d}:00 - {len(ZONES)} zones générées (prédiction IA réelle)')
+        if h_idx % 6 == 0:
+            print(f'   ⏰ {h_idx}:00 (UTC) / {hour}:00 (Local) - {len(ZONES)} zones générées')
     
     conn.commit()
     cursor.close()
     
     print(f'\n✅ {total_inserted} prédictions horaires RÉELLES insérées ({len(ZONES)} zones × 24h)')
-    print(f'   📊 Période: {tomorrow_midnight.strftime("%d/%m/%Y")} 00:00 → 23:00')
+    print(f'   📊 Période: {(tomorrow_midnight - timedelta(hours=1)).strftime("%d/%m/%Y %H:%M")} → {(tomorrow_midnight + timedelta(hours=22)).strftime("%d/%m/%Y %H:%M")}')
 
 
 # =============================================================================

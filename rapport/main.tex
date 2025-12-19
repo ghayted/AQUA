@@ -529,6 +529,8 @@ Le modèle combine trois composants principaux :
 
 Pour exploiter les corrélations spatiales entre zones géographiques, les 10 zones de surveillance sont organisées dans une \textbf{grille matricielle 4×4} (16 positions, dont 10 utilisées). Cette représentation permet au ConvLSTM d'appliquer des filtres de convolution pour capturer les relations de voisinage.
 
+\textbf{Utilisation bidirectionnelle :} La matrice spatiale 4×4 est utilisée \textbf{à la fois pendant l'entraînement} (pour créer les séquences d'apprentissage avec positions fixes) \textbf{et pendant la prédiction} (pour générer les prévisions 24h en conservant la même organisation spatiale).
+
 \textbf{Mapping des zones dans la matrice :}
 
 \begin{table}[H]
@@ -550,6 +552,20 @@ Marrakech & - & - & - \\
 \hline
 \end{tabular}
 \end{table}
+
+\subsubsection{Convolutions Spatiales et Relations de Voisinage}
+
+Le ConvLSTM utilise un \textbf{noyau de convolution 3×3} (kernel\_size=3) qui analyse une fenêtre de 9 positions autour de chaque zone. Cette opération permet de capturer les relations spatiales entre zones adjacentes.
+
+\textbf{Exemple concret :} Pour prédire la qualité à Rabat-Centre [0,0], le modèle examine automatiquement :
+\begin{itemize}
+    \item Hay-Riad [0,1] : voisin horizontal (est)
+    \item Salé-Nord [1,0] : voisin vertical (sud)
+    \item Agdal [1,1] : voisin diagonal (sud-est)
+    \item Et les autres zones dans la fenêtre 3×3
+\end{itemize}
+
+Cette architecture permet au modèle d'apprendre que \textit{"si Bouregreg (rivière) a une turbidité élevée, cela peut affecter Rabat-Centre et Salé-Nord"} ou que \textit{"les zones côtières (Côte-Océan) ont des patterns de température différents des zones intérieures"}.
 
 Pour chaque zone $z$ positionnée en $(r, c)$ dans la grille, les données sont encodées dans un tenseur 3D de dimensions $(3, 4, 4)$ où les 3 canaux correspondent aux paramètres pH, turbidité et température :
 
@@ -585,6 +601,28 @@ Les valeurs sont normalisées dans l'intervalle $[0, 1]$ selon les plages physiq
     \item Turbidité : $\text{norm} = turb / 8.0$ (plage [0, 8] NTU)
     \item Température : $\text{norm} = (temp - 10) / 25.0$ (plage [10, 35]°C)
 \end{itemize}
+
+\subsubsection{Processus d'Entraînement par Fenêtre Glissante}
+
+L'entraînement du modèle utilise une technique de \textbf{fenêtre glissante} (sliding window) sur les données historiques. Pour chaque zone, le système crée des milliers de séquences d'apprentissage :
+
+\textbf{Mécanisme de la fenêtre glissante :}
+\begin{enumerate}
+    \item \textbf{Séquence 1} : Les 12 premières heures (H0 → H11) servent d'entrée, le modèle prédit H12
+    \item \textbf{Séquence 2} : La fenêtre glisse d'une heure (H1 → H12), le modèle prédit H13
+    \item \textbf{Séquence 3} : Nouvelle glissade (H2 → H13), le modèle prédit H14
+    \item Et ainsi de suite jusqu'à épuisement des données historiques
+\end{enumerate}
+
+\textbf{Exemple numérique :} À partir de 23,368 enregistrements collectés sur 7 jours, le système génère plusieurs milliers de séquences d'entraînement. Pour chaque séquence :
+\begin{itemize}
+    \item Le modèle reçoit 12 matrices 4×4 (une par heure) avec les valeurs normalisées de pH, turbidité, température
+    \item Il prédit les valeurs de l'heure suivante (H13)
+    \item Il compare sa prédiction avec la \textbf{valeur réelle} de H13 dans la base de données
+    \item Il calcule l'erreur (MSE) et ajuste ses poids via rétropropagation
+\end{itemize}
+
+Ce processus itératif permet au modèle d'apprendre les patterns temporels (variations jour/nuit) et spatiaux (propagation de pollution entre zones voisines).
 
 \textbf{Processus de prédiction :}
 
