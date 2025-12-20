@@ -45,8 +45,14 @@ pipeline {
         
         stage('Start Services') {
             steps {
-                echo '▶️ Démarrage des services...'
-                sh 'docker-compose up -d'
+                echo '▶️ Démarrage des services (sans Jenkins)...'
+                // Exclure Jenkins pour éviter la récursion
+                sh '''
+                    docker-compose up -d \
+                        timescaledb postgres mqtt geoserver minio \
+                        capteurs satellite stmodel alertes api-sig web \
+                        || echo "Certains services déjà en cours"
+                '''
                 sh 'sleep 30'
             }
         }
