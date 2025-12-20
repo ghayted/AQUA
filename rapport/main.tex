@@ -21,7 +21,7 @@
 \usepackage{graphicx}
 \usepackage{setspace}
 \usepackage{float}
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 \usepackage{framed}
 \usepackage{enumitem}
 \usepackage{amsmath}
@@ -474,13 +474,90 @@ Nginx sert l'interface utilisateur statique (HTML/CSS/JS).
     \item \texttt{predictions.html} : Prévisions IA 24h
 \end{itemize}
 
-\subsubsection{Services Auxiliaires}
-
 \textbf{GeoServer (aquawatch-geoserver)} : Serveur cartographique pour les couches WMS/WFS.
 
 \textbf{MinIO (aquawatch-minio)} : Stockage objet S3 pour les données satellite.
 
 \textbf{Service Satellite (aquawatch-satellite)} : Traitement des images satellite (simulation).
+
+\subsubsection{Pipeline CI/CD avec Jenkins}
+
+Le projet intègre un pipeline d'intégration continue (CI) et de déploiement continu (CD) basé sur \textbf{Jenkins}, permettant l'automatisation du build, des tests et du déploiement des microservices.
+
+\textbf{Rôle du Pipeline CI/CD :}
+
+\begin{itemize}
+    \item \textbf{Automatisation} : Un seul clic déclenche le clone, le build et le déploiement de tous les services
+    \item \textbf{Reproductibilité} : Même processus garanti sur tous les environnements
+    \item \textbf{Traçabilité} : Historique complet des builds avec logs et durées
+    \item \textbf{Détection d'erreurs} : Tests de santé automatiques après déploiement
+\end{itemize}
+
+\textbf{Stages du Pipeline :}
+
+\begin{table}[H]
+\centering
+\caption{Stages du pipeline Jenkins}
+\begin{tabular}{|l|c|p{6cm}|}
+\hline
+\textbf{Stage} & \textbf{Durée} & \textbf{Action} \\
+\hline
+Checkout & ~4s & Clone le code depuis GitHub (shallow clone) \\
+\hline
+Environment Setup & ~2s & Vérifie Docker et Docker Compose \\
+\hline
+Build Services & ~20s & Construit les images Docker en parallèle \\
+\hline
+Start Services & ~35s & Démarre les 11 microservices \\
+\hline
+Health Checks & ~1s & Teste l'API et l'interface web \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Extrait du Jenkinsfile :}
+
+\begin{lstlisting}[language=Groovy, caption=Pipeline Jenkins simplifié]
+pipeline {
+    agent any
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/ghayted/AQUA.git'
+                    ]]
+                ])
+            }
+        }
+        stage('Build Services') {
+            steps {
+                sh 'docker-compose build --parallel'
+            }
+        }
+        stage('Start Services') {
+            steps {
+                sh 'docker-compose up -d'
+                sh 'sleep 30'
+            }
+        }
+        stage('Health Checks') {
+            steps {
+                sh 'curl -s http://localhost:3000/health'
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+% Screenshot Jenkins Pipeline
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{jenkins-pipeline.png}
+    \caption{Vue des stages du pipeline Jenkins - Build réussi avec tous les services déployés}
+    \label{fig:jenkins-pipeline}
+\end{figure}
 
 \subsection{Fonctionnalités du Logiciel}
 

@@ -469,12 +469,14 @@ def build_input_tensor(sensor_data):
 
 
 def check_predictions_exist(conn):
-    """Vérifie si des prédictions existent déjà pour demain."""
+    """Vérifie si des prédictions existent déjà pour demain (heure locale UTC+1)."""
     cursor = conn.cursor()
-    tomorrow = datetime.now(timezone.utc).date() + timedelta(days=1)
+    # Utiliser le même fuseau horaire que run_hourly_predictions
+    local_tz = timezone(timedelta(hours=1))  # UTC+1
+    tomorrow = (datetime.now(local_tz) + timedelta(days=1)).date()
     cursor.execute("""
         SELECT COUNT(*) FROM predictions_qualite 
-        WHERE DATE(timestamp) = %s
+        WHERE DATE(timestamp AT TIME ZONE 'Europe/Paris') = %s
     """, (tomorrow,))
     count = cursor.fetchone()[0]
     cursor.close()
@@ -483,7 +485,7 @@ def check_predictions_exist(conn):
 
 def run_hourly_predictions(model, conn, sensor_data, data_quality=None):
     """
-    Génère 24 prédictions horaires RÉELLES pour demain.
+    Génère 24 prédictions horaires RÉELLES pour demain (00:00 à 23:00).
     Utilise data_quality pour ajuster le score de confiance.
     """
     
@@ -491,11 +493,15 @@ def run_hourly_predictions(model, conn, sensor_data, data_quality=None):
         print('⏭️  Prédictions demain déjà présentes, pas de regénération')
         return
     
-    tomorrow_midnight = datetime.now(timezone.utc).replace(
+    # Calculer demain à 00:00 en heure LOCALE avec timezone explicite
+    # UTC+1 pour le Maroc/Europe de l'Ouest en hiver
+    local_tz = timezone(timedelta(hours=1))  # UTC+1
+    now_local = datetime.now(local_tz)
+    tomorrow_midnight = now_local.replace(
         hour=0, minute=0, second=0, microsecond=0
     ) + timedelta(days=1)
     
-    print(f'\n📅 Génération des prévisions pour {tomorrow_midnight.strftime("%Y-%m-%d")}...')
+    print(f'\n📅 Génération des prévisions pour {tomorrow_midnight.strftime("%Y-%m-%d")} (00:00 à 23:00)...')
     
     # Construire le tenseur d'entrée
     input_tensor = build_input_tensor(sensor_data)
@@ -505,9 +511,9 @@ def run_hourly_predictions(model, conn, sensor_data, data_quality=None):
     
     model.eval()
     
-    for h_idx in range(-1, 23):
-        hour = h_idx % 24
-        target_time = tomorrow_midnight + timedelta(hours=h_idx)
+    # Générer exactement 24 heures: 00:00 à 23:00 de demain
+    for hour in range(24):
+        target_time = tomorrow_midnight + timedelta(hours=hour)
         
         # Variation horaire basée sur des patterns physiques réalistes
         # Température: plus chaude le jour (12h-15h), plus froide la nuit
@@ -564,14 +570,14 @@ def run_hourly_predictions(model, conn, sensor_data, data_quality=None):
                   risk_score, risk_niveau, hour, confidence))
             total_inserted += 1
         
-        if h_idx % 6 == 0:
-            print(f'   ⏰ {h_idx}:00 (UTC) / {hour}:00 (Local) - {len(ZONES)} zones générées')
+        if hour % 6 == 0:
+            print(f'   ⏰ {hour:02d}:00 - {len(ZONES)} zones générées')
     
     conn.commit()
     cursor.close()
     
-    print(f'\n✅ {total_inserted} prédictions horaires RÉELLES insérées ({len(ZONES)} zones × 24h)')
-    print(f'   📊 Période: {(tomorrow_midnight - timedelta(hours=1)).strftime("%d/%m/%Y %H:%M")} → {(tomorrow_midnight + timedelta(hours=22)).strftime("%d/%m/%Y %H:%M")}')
+    print(f'\n✅ {total_inserted} prédictions horaires insérées ({len(ZONES)} zones × 24h)')
+    print(f'   📊 Période: {tomorrow_midnight.strftime("%d/%m/%Y")} de 00:00 à 23:00')
 
 
 # =============================================================================
