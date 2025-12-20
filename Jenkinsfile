@@ -5,7 +5,20 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo '📥 Récupération du code depuis GitHub...'
-                checkout scm
+                // Utiliser un timeout plus long et shallow clone pour les gros repos
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    extensions: [
+                        [$class: 'CloneOption', 
+                         depth: 1, 
+                         shallow: true, 
+                         timeout: 30,
+                         noTags: true],
+                        [$class: 'CheckoutOption', timeout: 30]
+                    ],
+                    userRemoteConfigs: [[url: 'https://github.com/ghayted/AQUA.git']]
+                ])
                 sh 'ls -la'
                 echo '✅ Code AQUA récupéré avec succès!'
             }
