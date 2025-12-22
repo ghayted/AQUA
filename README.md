@@ -484,4 +484,4 @@ docker-compose logs -f alertes
 - **Souhail Azzimani**
 - **Amine Ibnou Chiekh**
 
-EMSI Marrakech - 2024-2025
+EMSI Marrakech - 2025-2026
