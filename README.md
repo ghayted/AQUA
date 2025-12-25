@@ -2,6 +2,12 @@
 
 Plateforme IoT + IA pour la surveillance proactive de la qualité de l'eau au Maroc.
 
+## 🎬 Démonstration
+
+https://github.com/user-attachments/assets/demonstration.mp4
+
+▶️ [Voir la vidéo de démonstration](./demonstration.mp4)
+
 ---
 
 ## 📁 Structure du Projet
