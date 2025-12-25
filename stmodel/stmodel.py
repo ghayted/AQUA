@@ -599,6 +599,15 @@ def main():
     conn = psycopg2.connect(**DB_CONFIG)
     init_database(conn)
     
+    # Register with Consul for service discovery
+    try:
+        sys.path.insert(0, '/app/shared')
+        from service_discovery import register_service, wait_for_consul
+        if wait_for_consul(10, 2):
+            register_service('stmodel', 0)
+    except Exception as consul_error:
+        print(f'⚠️ Consul non disponible: {consul_error}')
+    
     model = HourlyWaterQualityPredictor()
     
     # Charger poids existants si disponibles

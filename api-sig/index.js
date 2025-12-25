@@ -599,7 +599,7 @@ const PORT = process.env.PORT || 3000;
 async function start() {
   try {
     await initDatabase();
-    app.listen(PORT, () => {
+    app.listen(PORT, async () => {
       console.log(`🚀 API-SIG démarrée sur le port ${PORT}`);
       console.log(`📚 Documentation Swagger: http://localhost:${PORT}/api-docs`);
       console.log(`📡 Endpoints disponibles:`);
@@ -609,6 +609,16 @@ async function start() {
       console.log(`   - GET /api/predictions`);
       console.log(`   - GET /api/alertes`);
       console.log(`   - GET /api/stats`);
+
+      // Register with Consul for service discovery
+      try {
+        const { registerService, waitForConsul } = require('./shared/service-discovery');
+        if (await waitForConsul(10, 2000)) {
+          await registerService('api-sig', 0);
+        }
+      } catch (consulError) {
+        console.log('⚠️ Consul registration failed:', consulError.message);
+      }
     });
   } catch (error) {
     console.error('❌ Erreur au démarrage:', error);

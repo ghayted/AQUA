@@ -340,6 +340,17 @@ def main():
     minio_client = init_minio()
 
     print(f'✅ Service satellite prêt - Intervalle de collecte: {FETCH_INTERVAL}s')
+    
+    # Register with Consul for service discovery
+    try:
+        import sys
+        sys.path.insert(0, '/app/shared')
+        from service_discovery import register_service, wait_for_consul
+        if wait_for_consul(10, 2):
+            register_service('satellite', 0)
+    except Exception as consul_error:
+        print(f'⚠️ Consul non disponible: {consul_error}')
+    
     try:
         while True:
             observations = collect_observations(sentinel_config, sentinel_enabled)

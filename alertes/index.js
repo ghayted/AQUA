@@ -73,7 +73,7 @@ const emailTransporter = nodemailer.createTransport({
 // Fonction pour vérifier les seuils OMS et générer des alertes
 async function checkOMSThresholds() {
   const alertes = [];
-  
+
   // Récupérer les dernières données des capteurs avec zone géographique
   try {
     const capteursQuery = `
@@ -84,7 +84,7 @@ async function checkOMSThresholds() {
       LIMIT 20
     `;
     const capteursResult = await timescaleClient.query(capteursQuery);
-    
+
     // Éviter les doublons d'alertes récentes (dans les 5 dernières minutes)
     let recentAlertsMap = new Map();
     try {
@@ -106,7 +106,7 @@ async function checkOMSThresholds() {
       // Ignorer l'erreur si la table n'existe pas encore
       // Ne pas logger pour éviter le spam
     }
-    
+
     for (const row of capteursResult.rows) {
       const phValue = toNumber(row.ph);
       const turbValue = toNumber(row.turbidite);
@@ -117,7 +117,7 @@ async function checkOMSThresholds() {
 
       const zoneGeo = row.zone || 'Zone inconnue';
       const population = POPULATION_ZONES[zoneGeo] || 10000;
-      
+
       // Vérifier le pH
       if (phValue !== null && (phValue < OMS_SEUILS.ph.critical.min || phValue > OMS_SEUILS.ph.critical.max)) {
         const alertKey = `${row.capteur_id}_ph_CRITICAL`;
@@ -154,7 +154,7 @@ async function checkOMSThresholds() {
           });
         }
       }
-      
+
       // Vérifier la turbidité
       if (turbValue !== null && turbValue > OMS_SEUILS.turbidite.critical) {
         const alertKey = `${row.capteur_id}_turbidite_CRITICAL`;
@@ -191,7 +191,7 @@ async function checkOMSThresholds() {
           });
         }
       }
-      
+
       // Vérifier la température
       if (tempValue !== null && tempValue > OMS_SEUILS.temperature.critical) {
         const alertKey = `${row.capteur_id}_temperature_WARNING`;
@@ -212,14 +212,14 @@ async function checkOMSThresholds() {
         }
       }
     }
-    
+
   } catch (error) {
     // Erreur sur les capteurs, continuer quand même
     console.log('⚠️ Erreur lors de la vérification des capteurs:', error.message);
     // Retourner les alertes déjà collectées même en cas d'erreur
     return alertes;
   }
-  
+
   // Vérification des données satellite
   try {
     const satelliteQuery = `
@@ -334,7 +334,7 @@ async function checkOMSThresholds() {
       console.log('⚠️ Erreur lors de la lecture satellite:', error.message);
     }
   }
-  
+
   return alertes;
 }
 
@@ -345,7 +345,7 @@ async function initDatabase() {
     dbClient = new Client(dbConfig);
     await dbClient.connect();
     console.log('✅ Connecté à PostgreSQL (alertes)');
-    
+
     // Connexion à TimescaleDB pour lire les données
     timescaleClient = new Client(timescaleConfig);
     await timescaleClient.connect();
@@ -372,7 +372,7 @@ async function initDatabase() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-    
+
     // Ajouter les nouvelles colonnes si elles n'existent pas
     try {
       await dbClient.query(`ALTER TABLE alertes ADD COLUMN IF NOT EXISTS zone_geographique VARCHAR(100);`);
@@ -431,14 +431,14 @@ async function insertAlert(alert) {
       alert.message,
       alert.status,
     ]);
-    
+
     const alertId = result.rows[0].id;
     const severityIcon = alert.severity === 'CRITICAL' ? '🚨' : alert.severity === 'WARNING' ? '⚠️' : 'ℹ️';
     console.log(`${severityIcon} Alerte [${alertId}]: ${alert.severity} - ${alert.type} - ${alert.zone_geographique || alert.zone} (${alert.parametre}: ${alert.valeur})`);
-    
+
     // Simuler l'envoi d'email
     await sendEmailNotification(alert);
-    
+
     return alertId;
   } catch (error) {
     console.error('❌ Erreur lors de l\'insertion de l\'alerte:', error.message);
@@ -462,14 +462,14 @@ async function sendEmailNotification(alert) {
         <p><strong>Timestamp:</strong> ${alert.timestamp}</p>
       `,
     };
-    
+
     // En mode simulation, on ne va pas vraiment envoyer l'email
     // mais on simule l'envoi
     console.log(`📧 Email simulé envoyé pour l'alerte: ${alert.type} - ${alert.zone}`);
-    
+
     // Marquer l'email comme envoyé dans la base de données
     // (dans un vrai système, on ferait ça après confirmation d'envoi)
-    
+
   } catch (error) {
     console.error('❌ Erreur lors de l\'envoi de l\'email:', error.message);
   }
@@ -498,11 +498,21 @@ async function main() {
 
   console.log('✅ Service alertes démarré - Vérification des seuils OMS toutes les 7 secondes');
 
+  // Register with Consul for service discovery
+  try {
+    const { registerService, waitForConsul } = require('./shared/service-discovery');
+    if (await waitForConsul(10, 2000)) {
+      await registerService('alertes', 0);
+    }
+  } catch (consulError) {
+    console.log('⚠️ Consul non disponible, service discovery désactivé');
+  }
+
   // Vérifier les seuils OMS et générer des alertes toutes les 7 secondes
   setInterval(async () => {
     try {
       const alertes = await checkOMSThresholds();
-      
+
       // Insérer seulement les vraies alertes (pas de SYSTEM_OK automatique)
       if (alertes && alertes.length > 0) {
         console.log(`📊 ${alertes.length} alerte(s) détectée(s) - Génération des alertes...`);

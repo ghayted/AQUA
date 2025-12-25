@@ -18,6 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copier le code source
 COPY satellite.py .
 
+# Shared module is mounted via docker-compose volume
+
 # Commande de démarrage
 CMD ["python", "satellite.py"]
 

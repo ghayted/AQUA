@@ -7,10 +7,10 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "consul": "^1.2.0",
     "pg": "^8.11.3",
     "nodemailer": "^6.9.7"
   },
   "author": "",
   "license": "ISC"
 }
-

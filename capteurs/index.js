@@ -288,15 +288,16 @@ function connectMQTT() {
   }
 }
 
-// Fonction principale
 async function main() {
   console.log('🚀 Démarrage du service capteurs...');
 
   // Initialiser la base de données
   await initDatabase();
+  console.log('🔄 Database initialized, connecting MQTT...');
 
   // Connecter MQTT (optionnel, continue même si MQTT n'est pas disponible)
   connectMQTT();
+  console.log('🔄 MQTT connect initiated, setting up interval...');
 
   // Get interval from environment variable or default to 5000ms (5 seconds)
   const CAPTEURS_INTERVAL_SECONDS = parseInt(process.env.CAPTEURS_INTERVAL_SECONDS || '5');
@@ -311,6 +312,21 @@ async function main() {
 
   console.log(`✅ Service capteurs démarré - ${Object.keys(capteurLocations).length} capteurs dans ${new Set(Object.values(capteurLocations).map(l => l.zone)).size} zones`);
   console.log(`✅ Génération de données toutes les ${CAPTEURS_INTERVAL_SECONDS} secondes`);
+
+  // Register with Consul for service discovery
+  console.log('🔄 Attempting Consul registration...');
+  try {
+    const { registerService, waitForConsul } = require('./shared/service-discovery');
+    console.log('🔄 Service discovery module loaded');
+    if (await waitForConsul(10, 2000)) {
+      console.log('🔄 Consul is available, registering...');
+      await registerService('capteurs', 0);
+    } else {
+      console.log('⚠️ Consul not available after waiting');
+    }
+  } catch (consulError) {
+    console.log('⚠️ Consul registration error:', consulError.message);
+  }
 }
 
 // Gestion de l'arrêt propre

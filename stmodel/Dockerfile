@@ -12,6 +12,8 @@ COPY stmodel.py .
 COPY generate_historical_data.py .
 COPY trained_weights.pth .
 
+# Shared module is mounted via docker-compose volume
+
 CMD ["python", "-u", "stmodel.py"]
 
 
