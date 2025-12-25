@@ -26,17 +26,16 @@ function getConsul() {
 }
 
 /**
- * Register a service with Consul
+ * Register a service with Consul including HTTP health check
  * @param {string} serviceName - Name of the service
  * @param {number} port - Port the service listens on (0 if no HTTP endpoint)
- * @param {string} healthPath - Health check endpoint path (e.g., '/health') - currently not used
+ * @param {string} healthPath - Health check endpoint path (e.g., '/health')
  * @returns {Promise<string>} - Service ID
  */
 async function registerService(serviceName, port = 0, healthPath = null) {
     const client = getConsul();
     const serviceId = `${serviceName}-${process.pid}`;
 
-    // Simple registration without health checks for maximum compatibility
     const registration = {
         id: serviceId,
         name: serviceName,
@@ -45,9 +44,26 @@ async function registerService(serviceName, port = 0, healthPath = null) {
     };
 
     try {
+        // First register the service
         await client.agent.service.register(registration);
         registeredServiceId = serviceId;
         console.log(`✅ Service "${serviceName}" registered in Consul (ID: ${serviceId})`);
+
+        // Then add HTTP health check if configured
+        if (port > 0 && healthPath) {
+            try {
+                await client.agent.check.register({
+                    Name: `${serviceName}-http-check`,
+                    ServiceID: serviceId,
+                    HTTP: `http://${serviceName}:${port}${healthPath}`,
+                    Interval: '10s'
+                });
+                console.log(`📋 HTTP Health check added: http://${serviceName}:${port}${healthPath}`);
+            } catch (checkError) {
+                console.log(`⚠️ Health check registration failed: ${checkError.message}`);
+            }
+        }
+
         return serviceId;
     } catch (error) {
         console.error(`❌ Failed to register service in Consul: ${error.message}`);

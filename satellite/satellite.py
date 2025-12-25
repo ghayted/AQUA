@@ -350,6 +350,24 @@ def main():
             register_service('satellite', 0)
     except Exception as consul_error:
         print(f'⚠️ Consul non disponible: {consul_error}')
+
+    # Register with Eureka
+    try:
+        import py_eureka_client.eureka_client as eureka_client
+        
+        EUREKA_HOST = os.getenv('EUREKA_HOST', 'eureka')
+        EUREKA_PORT = int(os.getenv('EUREKA_PORT', '8761'))
+        
+        # Sync init for background service
+        eureka_client.init(
+            eureka_server=f"http://{EUREKA_HOST}:{EUREKA_PORT}/eureka",
+            app_name="satellite",
+            instance_port=80, # Virtual port as this is a background service
+            instance_host="satellite"
+        )
+        print("✅ Registered with Eureka")
+    except Exception as e:
+        print(f"⚠️ Failed to register with Eureka: {e}")
     
     try:
         while True:

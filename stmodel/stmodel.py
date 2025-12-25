@@ -607,6 +607,26 @@ def main():
             register_service('stmodel', 0)
     except Exception as consul_error:
         print(f'⚠️ Consul non disponible: {consul_error}')
+
+    # Register with Eureka
+    try:
+        import py_eureka_client.eureka_client as eureka_client
+        import asyncio
+        
+        EUREKA_HOST = os.getenv('EUREKA_HOST', 'eureka')
+        EUREKA_PORT = int(os.getenv('EUREKA_PORT', '8761'))
+        
+        # Async init requiring an event loop, but we are in sync main.
+        # Simple blocking init for background services
+        eureka_client.init(
+            eureka_server=f"http://{EUREKA_HOST}:{EUREKA_PORT}/eureka",
+            app_name="stmodel",
+            instance_port=80,
+            instance_host="stmodel"
+        )
+        print("✅ Registered with Eureka")
+    except Exception as e:
+        print(f"⚠️ Failed to register with Eureka: {e}")
     
     model = HourlyWaterQualityPredictor()
     

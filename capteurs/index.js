@@ -313,20 +313,36 @@ async function main() {
   console.log(`✅ Service capteurs démarré - ${Object.keys(capteurLocations).length} capteurs dans ${new Set(Object.values(capteurLocations).map(l => l.zone)).size} zones`);
   console.log(`✅ Génération de données toutes les ${CAPTEURS_INTERVAL_SECONDS} secondes`);
 
-  // Register with Consul for service discovery
-  console.log('🔄 Attempting Consul registration...');
-  try {
-    const { registerService, waitForConsul } = require('./shared/service-discovery');
-    console.log('🔄 Service discovery module loaded');
-    if (await waitForConsul(10, 2000)) {
-      console.log('🔄 Consul is available, registering...');
-      await registerService('capteurs', 0);
+  // Start a simple HTTP server for Eureka health check
+  const http = require('http');
+  const HEALTH_PORT = process.env.HEALTH_PORT || 3001;
+
+  const server = http.createServer((req, res) => {
+    if (req.url === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'UP' }));
     } else {
-      console.log('⚠️ Consul not available after waiting');
+      res.writeHead(404);
+      res.end();
     }
-  } catch (consulError) {
-    console.log('⚠️ Consul registration error:', consulError.message);
-  }
+  });
+
+  server.listen(HEALTH_PORT, async () => {
+    console.log(`🏥 Health check server listening on port ${HEALTH_PORT}`);
+
+    // Register with Eureka
+    try {
+      // Assuming shared folder is mounted at /app/shared
+      const { registerService, waitForEureka, setupGracefulShutdown } = require('./shared/eureka-client');
+      setupGracefulShutdown();
+
+      if (await waitForEureka(30, 2000)) {
+        await registerService('capteurs', HEALTH_PORT, '/health');
+      }
+    } catch (eurekaError) {
+      console.log('⚠️ Eureka registration failed:', eurekaError.message);
+    }
+  });
 }
 
 // Gestion de l'arrêt propre

@@ -186,6 +186,8 @@ app.get('/api/capteurs', async (req, res) => {
       } : null,
     }));
 
+
+
     res.json({
       type: 'FeatureCollection',
       features: features,
@@ -195,6 +197,58 @@ app.get('/api/capteurs', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+/**
+ * @swagger
+ * /api/test-discovery:
+ *   get:
+ *     summary: Prouver la communication entre microservices via Eureka
+ *     tags: [Santé]
+ *     responses:
+ *       200:
+ *         description: Succès de la communication
+ */
+app.get('/api/test-discovery', async (req, res) => {
+  try {
+    const axios = require('axios');
+    const { discoverService } = require('./shared/eureka-client');
+
+    // 1. Découverte via Eureka
+    const service = discoverService('capteurs');
+    if (!service) {
+      return res.status(503).json({
+        status: 'ERROR',
+        message: 'Le service CAPTEURS n\'est pas visible dans Eureka'
+      });
+    }
+
+    // 2. Appel du service découvert
+    const targetUrl = `http://${service.host}:${service.port}/health`;
+    console.log(`🔍 Test de communication vers: ${targetUrl}`);
+
+    const response = await axios.get(targetUrl, { timeout: 2000 });
+
+    res.json({
+      status: 'SUCCESS',
+      message: '✅ Communication inter-service réussie !',
+      discovery_proof: {
+        source: 'api-sig',
+        lookup: 'capteurs',
+        found_address: service.host,
+        found_port: service.port,
+        connection_url: targetUrl
+      },
+      remote_response: response.data
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'FAILED',
+      error: error.message,
+      details: 'Impossible de joindre le microservice cible'
+    });
+  }
+});
+
 
 /**
  * @swagger
@@ -610,14 +664,15 @@ async function start() {
       console.log(`   - GET /api/alertes`);
       console.log(`   - GET /api/stats`);
 
-      // Register with Consul for service discovery
+      // Register with Eureka for service discovery with HTTP health check
       try {
-        const { registerService, waitForConsul } = require('./shared/service-discovery');
-        if (await waitForConsul(10, 2000)) {
-          await registerService('api-sig', 0);
+        const { registerService, waitForEureka, setupGracefulShutdown } = require('./shared/eureka-client');
+        setupGracefulShutdown();
+        if (await waitForEureka(30, 2000)) {
+          await registerService('api-sig', PORT, '/health');
         }
-      } catch (consulError) {
-        console.log('⚠️ Consul registration failed:', consulError.message);
+      } catch (eurekaError) {
+        console.log('⚠️ Eureka registration failed:', eurekaError.message);
       }
     });
   } catch (error) {

@@ -498,14 +498,32 @@ async function main() {
 
   console.log('✅ Service alertes démarré - Vérification des seuils OMS toutes les 7 secondes');
 
-  // Register with Consul for service discovery
+  // Register with Eureka for service discovery
   try {
-    const { registerService, waitForConsul } = require('./shared/service-discovery');
-    if (await waitForConsul(10, 2000)) {
-      await registerService('alertes', 0);
-    }
-  } catch (consulError) {
-    console.log('⚠️ Consul non disponible, service discovery désactivé');
+    // Start a simple HTTP server for Eureka health check
+    const http = require('http');
+    const HEALTH_PORT = process.env.HEALTH_PORT || 3002;
+
+    const server = http.createServer((req, res) => {
+      if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'UP' }));
+      } else {
+        res.writeHead(404);
+        res.end();
+      }
+    });
+
+    server.listen(HEALTH_PORT, async () => {
+      console.log(`🏥 Health check server listening on port ${HEALTH_PORT}`);
+      const { registerService, waitForEureka, setupGracefulShutdown } = require('./shared/eureka-client');
+      setupGracefulShutdown();
+      if (await waitForEureka(30, 2000)) {
+        await registerService('alertes', HEALTH_PORT, '/health');
+      }
+    });
+  } catch (eurekaError) {
+    console.log('⚠️ Eureka setup failed:', eurekaError.message);
   }
 
   // Vérifier les seuils OMS et générer des alertes toutes les 7 secondes

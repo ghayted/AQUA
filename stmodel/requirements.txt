@@ -3,3 +3,4 @@ torch
 numpy>=1.24.0
 psycopg2-binary>=2.9.0
 python-consul>=1.1.0
+py_eureka_client>=0.10.0

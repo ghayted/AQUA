@@ -1,20 +1,24 @@
 services:
   # ============================================
-  # SERVICE DISCOVERY - HashiCorp Consul
+  # SERVICE DISCOVERY - Netflix Eureka Server
   # ============================================
-  consul:
-    image: hashicorp/consul:latest
-    container_name: aquawatch-consul
+  # ============================================
+  # SERVICE DISCOVERY - Netflix Eureka Server
+  # ============================================
+  eureka:
+    image: steeltoeoss/eureka-server:latest
+    container_name: aquawatch-eureka
     ports:
-      - "8500:8500"     # Web UI + HTTP API
-      - "8600:8600/udp" # DNS
-    command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
+      - "8761:8761"     # Eureka Dashboard
+    environment:
+      EUREKA_SERVER_ENABLE_SELF_PRESERVATION: "false"
     healthcheck:
-      test: ["CMD", "consul", "members"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8761/actuator/health"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
     restart: unless-stopped
+
 
   # ============================================
   # DATABASES
@@ -124,7 +128,7 @@ services:
       MQTT_BROKER: mqtt-broker
       MQTT_PORT: 1883
       CAPTEURS_INTERVAL_SECONDS: ${CAPTEURS_INTERVAL_SECONDS:-5}
-      CONSUL_HOST: consul
+      EUREKA_HOST: eureka
     volumes:
       - ./shared:/app/shared
     depends_on:
@@ -132,7 +136,7 @@ services:
         condition: service_healthy
       mqtt-broker:
         condition: service_healthy
-      consul:
+      eureka:
         condition: service_healthy
     restart: unless-stopped
 
@@ -157,7 +161,7 @@ services:
       SATELLITE_INTERVAL_SECONDS: ${SATELLITE_INTERVAL_SECONDS:-300}
       SATELLITE_SIMULATION_FALLBACK: ${SATELLITE_SIMULATION_FALLBACK:-true}
       SATELLITE_RESET_SCHEMA: ${SATELLITE_RESET_SCHEMA:-true}
-      CONSUL_HOST: consul
+      EUREKA_HOST: eureka
     volumes:
       - ./shared:/app/shared
     depends_on:
@@ -165,7 +169,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      consul:
+      eureka:
         condition: service_healthy
     restart: unless-stopped
 
@@ -180,14 +184,14 @@ services:
       TIMESCALEDB_USER: postgres
       TIMESCALEDB_PASSWORD: postgres
       STM_INTERVAL_SECONDS: ${STM_INTERVAL_SECONDS:-300}
-      CONSUL_HOST: consul
+      EUREKA_HOST: eureka
     volumes:
       - ./stmodel/weights:/app/weights
       - ./shared:/app/shared
     depends_on:
       timescaledb:
         condition: service_healthy
-      consul:
+      eureka:
         condition: service_healthy
     restart: unless-stopped
 
@@ -206,7 +210,7 @@ services:
       TIMESCALEDB_DB: aquawatch
       TIMESCALEDB_USER: postgres
       TIMESCALEDB_PASSWORD: postgres
-      CONSUL_HOST: consul
+      EUREKA_HOST: eureka
     volumes:
       - ./shared:/app/shared
     depends_on:
@@ -214,7 +218,7 @@ services:
         condition: service_healthy
       timescaledb:
         condition: service_healthy
-      consul:
+      eureka:
         condition: service_healthy
     restart: unless-stopped
 
@@ -236,7 +240,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       PORT: 3000
-      CONSUL_HOST: consul
+      EUREKA_HOST: eureka
     volumes:
       - ./shared:/app/shared
     healthcheck:
@@ -250,7 +254,7 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
-      consul:
+      eureka:
         condition: service_healthy
     restart: unless-stopped
 

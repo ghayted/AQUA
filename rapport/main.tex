@@ -473,6 +473,35 @@ Nginx sert l'interface utilisateur statique (HTML/CSS/JS).
 
 \textbf{Service Satellite (aquawatch-satellite)} : Traitement des images satellite (simulation).
 
+\subsubsection{Service Discovery avec Eureka}
+
+L'architecture distribuée d'AquaWatch nécessite un mécanisme dynamique pour la découverte des services. Nous utilisons \textbf{Netflix Eureka} comme registre de services centralisé.
+
+\textbf{Rôle d'Eureka :}
+\begin{itemize}
+    \item \textbf{Enregistrement} : Chaque microservice (Node.js ou Python) s'enregistre au démarrage auprès du serveur Eureka.
+    \item \textbf{Découverte} : Les services (ex: API-SIG) interrogent Eureka pour obtenir l'adresse IP et le port des autres services (ex: Capteurs).
+    \item \textbf{High Availability} : Eureka maintient une liste à jour des instances saines via des heartbeat réguliers.
+\end{itemize}
+
+La figure \ref{fig:eureka-dashboard} montre le tableau de bord Eureka avec l'ensemble des 5 microservices enregistrés et actifs ("UP").
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/Eureka1.png}
+    \caption{Tableau de bord Eureka - Vue d'ensemble des services enregistrés}
+    \label{fig:eureka-dashboard}
+\end{figure}
+
+L'historique des enregistrements (Figure \ref{fig:eureka-history}) permet de tracer les démarrages et arrêts des instances, facilitant le débogage et la surveillance du cluster.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/Eureka2.png}
+    \caption{Historique des enregistrements et renouvellements de baux dans Eureka}
+    \label{fig:eureka-history}
+\end{figure}
+
 \subsubsection{Pipeline CI/CD avec Jenkins}
 
 Le projet intègre un pipeline d'intégration continue (CI) et de déploiement continu (CD) basé sur \textbf{Jenkins}, permettant l'automatisation du build, des tests et du déploiement des microservices.
