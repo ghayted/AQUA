@@ -4,7 +4,10 @@ Plateforme IoT + IA pour la surveillance proactive de la qualité de l'eau au Ma
 
 ## 🎬 Démonstration
 
-https://github.com/user-attachments/assets/ce761ced-83ed-4dff-a982-c0159ec567af
+
+<video src="demonstration2.mp4" controls="controls" width="100%">
+</video>
+
 
 ---
 
