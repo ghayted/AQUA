@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # Base Infrastructure
+  consul: # Keep empty or remove if using Eureka. CI uses Eureka.
+    profiles: ["donotstart"] # Exclude consul
+
+  eureka:
+    container_name: ci-eureka
+    ports:
+      - "18761:8761"
+
+  timescaledb:
+    container_name: ci-timescaledb
+    ports:
+      - "15433:5432"
+
+  postgres:
+    container_name: ci-postgres
+    ports:
+      - "15434:5432"
+
+  mqtt-broker:
+    container_name: ci-mqtt
+    ports:
+      - "11883:1883"
+      - "19003:9001"
+
+  geoserver:
+    container_name: ci-geoserver
+    ports:
+      - "18082:8080"
+
+  minio:
+    container_name: ci-minio
+    ports:
+      - "19000:9000"
+      - "19002:9001"
+
+  # Application Services
+  capteurs:
+    container_name: ci-capteurs
+    environment:
+      TIMESCALEDB_HOST: timescaledb
+      MQTT_BROKER: mqtt-broker
+      EUREKA_HOST: eureka
+      HEALTH_PORT: 3001
+      # Note: We don't map ports for backend services usually, but if needed for healthcheck from host:
+    ports:
+      - "13001:3001"
+    depends_on:
+      timescaledb:
+        condition: service_started
+      mqtt-broker:
+        condition: service_started
+      eureka:
+        condition: service_started
+
+  alertes:
+    container_name: ci-alertes
+    environment:
+      POSTGRES_HOST: postgres
+      TIMESCALEDB_HOST: timescaledb
+      EUREKA_HOST: eureka
+      HEALTH_PORT: 3002
+    ports:
+      - "13002:3002"
+    depends_on:
+      postgres:
+        condition: service_started
+      timescaledb:
+        condition: service_started
+      eureka:
+        condition: service_started
+
+  satellite:
+    container_name: ci-satellite
+    environment:
+      TIMESCALEDB_HOST: timescaledb
+      MINIO_ENDPOINT: minio
+      EUREKA_HOST: eureka
+    depends_on:
+      timescaledb:
+        condition: service_started
+      minio:
+        condition: service_started
+      eureka:
+        condition: service_started
+
+  stmodel:
+    container_name: ci-stmodel
+    environment:
+      TIMESCALEDB_HOST: timescaledb
+      EUREKA_HOST: eureka
+    depends_on:
+      timescaledb:
+        condition: service_started
+      eureka:
+        condition: service_started
+
+  api-sig:
+    container_name: ci-api-sig
+    ports:
+      - "13000:3000"
+    environment:
+      POSTGIS_HOST: timescaledb
+      POSTGRES_HOST: postgres
+      EUREKA_HOST: eureka
+      PORT: 3000
+    depends_on:
+      timescaledb:
+        condition: service_started
+      postgres:
+        condition: service_started
+      eureka:
+        condition: service_started
+
+  web:
+    container_name: ci-web
+    ports:
+      - "10080:80"
+    depends_on:
+      api-sig:
+        condition: service_started
+
+  jenkins:
+    profiles: ["donotstart"]

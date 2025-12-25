@@ -260,7 +260,7 @@ AquaWatch est construit sur une architecture microservices moderne, flexible et 
     
     \begin{figure}[H]
         \centering
-        \includegraphics[width=0.85\textwidth]{images/architecture-microservices.png}
+        \includegraphics[width=0.85\textwidth]{architecture-microservices.png}
         \caption{Architecture des microservices AquaWatch - Flux de données entre les composants}
         \label{fig:architecture-microservices}
     \end{figure}
@@ -488,7 +488,7 @@ La figure \ref{fig:eureka-dashboard} montre le tableau de bord Eureka avec l'ens
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{images/Eureka1.png}
+    \includegraphics[width=0.95\textwidth]{Eureka1.png}
     \caption{Tableau de bord Eureka - Vue d'ensemble des services enregistrés}
     \label{fig:eureka-dashboard}
 \end{figure}
@@ -497,7 +497,7 @@ L'historique des enregistrements (Figure \ref{fig:eureka-history}) permet de tra
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{images/Eureka2.png}
+    \includegraphics[width=0.95\textwidth]{Eureka2.png}
     \caption{Historique des enregistrements et renouvellements de baux dans Eureka}
     \label{fig:eureka-history}
 \end{figure}
@@ -524,50 +524,68 @@ Le projet intègre un pipeline d'intégration continue (CI) et de déploiement c
 \hline
 \textbf{Stage} & \textbf{Durée} & \textbf{Action} \\
 \hline
-Checkout & ~4s & Clone le code depuis GitHub (shallow clone) \\
+Checkout & ~900ms & Récupération du code source \\
 \hline
-Environment Setup & ~2s & Vérifie Docker et Docker Compose \\
+Environment Setup & ~400ms & Création de la configuration CI isolée \\
 \hline
-Build Services & ~20s & Construit les images Docker en parallèle \\
+Infrastructure & ~4s & Démarrage TimeScaleDB, MQTT, Eureka \\
 \hline
-Start Services & ~35s & Démarre les 11 microservices \\
+Capteurs & ~1m 30s & Build et démarrage du service Capteurs \\
 \hline
-Health Checks & ~1s & Teste l'API et l'interface web \\
+Satellite & ~1m 40s & Build et démarrage du service Satellite \\
+\hline
+STModel & ~1m 20s & Build et démarrage du modèle IA \\
+\hline
+Alertes & ~90ms & Build et démarrage du service Alertes \\
+\hline
+API-SIG & ~70ms & Build et démarrage de l'API Node.js \\
+\hline
+Web & ~80ms & Build et démarrage du Frontend Nginx \\
+\hline
+Health Checks & ~300ms & Test de santé sur ports isolés \\
 \hline
 \end{tabular}
 \end{table}
 
-\textbf{Extrait du Jenkinsfile :}
+\textbf{Extrait du Jenkinsfile (Configuration Isolée) :}
 
-\begin{lstlisting}[language=Groovy, caption=Pipeline Jenkins simplifié]
+\begin{lstlisting}[language=Groovy, caption=Pipeline Jenkins avec isolation des environnements]
 pipeline {
     agent any
+    environment {
+        // Isolation des conteneurs pour éviter les conflits
+        COMPOSE_PROJECT_NAME = "aqua_ci_${BUILD_NUMBER}"
+        DOCKER_COMPOSE_CMD = "docker-compose -f docker-compose.ci.yml"
+    }
     stages {
-        stage('Checkout') {
+        stage('Environment Setup') {
             steps {
-                checkout([$class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    userRemoteConfigs: [[
-                        url: 'https://github.com/ghayted/AQUA.git'
-                    ]]
-                ])
+                // Génération dynamique de la configuration de test
+                writeFile file: 'docker-compose.ci.yml', text: """
+version: '3.8'
+services:
+  eureka: { container_name: ci-eureka-${BUILD_NUMBER}, ports: ["18761:8761"] }
+  api-sig: { ports: ["13000:3000"] }
+  // ... autres services avec ports décalés
+"""
             }
         }
-        stage('Build Services') {
+        stage('Infrastructure') {
             steps {
-                sh 'docker-compose build --parallel'
+                sh "${DOCKER_COMPOSE_CMD} up -d timescaledb mqtt eurkea"
             }
         }
-        stage('Start Services') {
-            steps {
-                sh 'docker-compose up -d'
-                sh 'sleep 30'
-            }
-        }
+        // Stages de déploiement individuels...
         stage('Health Checks') {
             steps {
-                sh 'curl -s http://localhost:3000/health'
+                // Vérification sur les ports de test (13000 vs 3000)
+                sh 'curl -f http://host.docker.internal:13000/health'
             }
+        }
+    }
+    post {
+        always {
+            sh "${DOCKER_COMPOSE_CMD} down -v"
         }
     }
 }
@@ -576,8 +594,8 @@ pipeline {
 % Screenshot Jenkins Pipeline
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{jenkins-pipeline.png}
-    \caption{Vue des stages du pipeline Jenkins - Build réussi avec tous les services déployés}
+    \includegraphics[width=0.95\textwidth]{jenkins_pipeline_success.png}
+    \caption{Vue des stages du pipeline Jenkins - Exécution granulaire avec succès}
     \label{fig:jenkins-pipeline}
 \end{figure}
 
