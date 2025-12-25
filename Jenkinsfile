@@ -5,7 +5,6 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo '📥 Récupération du code depuis GitHub...'
-                // Utiliser un timeout plus long et shallow clone pour les gros repos
                 checkout([
                     $class: 'GitSCM',
                     branches: [[name: '*/main']],
@@ -36,24 +35,59 @@ pipeline {
             }
         }
         
-        stage('Build Services') {
+        stage('Infrastructure') {
             steps {
-                echo '🏗️ Construction des images Docker...'
-                sh 'docker-compose build --parallel capteurs satellite stmodel alertes api-sig || echo "Build partiel"'
+                echo '🗄️ Démarrage de l\'infrastructure...'
+                sh 'docker-compose up -d timescaledb postgres mqtt geoserver minio'
+                sh 'sleep 10'
             }
         }
         
-        stage('Start Services') {
+        stage('📡 Capteurs') {
             steps {
-                echo '▶️ Démarrage des services (sans Jenkins)...'
-                // Exclure Jenkins pour éviter la récursion
-                sh '''
-                    docker-compose up -d \
-                        timescaledb postgres mqtt geoserver minio \
-                        capteurs satellite stmodel alertes api-sig web \
-                        || echo "Certains services déjà en cours"
-                '''
-                sh 'sleep 30'
+                echo '📡 Build & Start Capteurs...'
+                sh 'docker-compose build capteurs'
+                sh 'docker-compose up -d capteurs'
+            }
+        }
+        
+        stage('🛰️ Satellite') {
+            steps {
+                echo '🛰️ Build & Start Satellite...'
+                sh 'docker-compose build satellite'
+                sh 'docker-compose up -d satellite'
+            }
+        }
+        
+        stage('🤖 STModel') {
+            steps {
+                echo '🤖 Build & Start STModel (ML)...'
+                sh 'docker-compose build stmodel'
+                sh 'docker-compose up -d stmodel'
+            }
+        }
+        
+        stage('🚨 Alertes') {
+            steps {
+                echo '🚨 Build & Start Alertes...'
+                sh 'docker-compose build alertes'
+                sh 'docker-compose up -d alertes'
+            }
+        }
+        
+        stage('🗺️ API-SIG') {
+            steps {
+                echo '🗺️ Build & Start API-SIG...'
+                sh 'docker-compose build api-sig'
+                sh 'docker-compose up -d api-sig'
+            }
+        }
+        
+        stage('🌐 Web') {
+            steps {
+                echo '🌐 Démarrage du Frontend Web...'
+                sh 'docker-compose up -d web'
+                sh 'sleep 15'
             }
         }
         
