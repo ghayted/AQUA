@@ -3,11 +3,7 @@
 Plateforme IoT + IA pour la surveillance proactive de la qualité de l'eau au Maroc.
 
 ## 🎬 Démonstration
-
-https://github.com/ghayted/AQUA/issues/2#issue-3762427029
-
----
-
+https://private-user-images.githubusercontent.com/168784612/530240571-4c1cbb02-1313-49f9-b2ca-12535a9d0800.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjY3MDQ1MjQsIm5iZiI6MTc2NjcwNDIyNCwicGF0aCI6Ii8xNjg3ODQ2MTIvNTMwMjQwNTcxLTRjMWNiYjAyLTEzMTMtNDlmOS1iMmNhLTEyNTM1YTlkMDgwMC5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUxMjI1JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MTIyNVQyMzEwMjRaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1iYTIwZGY0ODUyMzBmNGJlODJlNTY2ZDQ2NDE0ZWI5NWQ3YzY0YTU0Y2RlN2NiMDg2MTI0MmE4OTMyNzVjNDQ4JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.z_V73DY0fCVxI_mIUVDyFC22nfNgu8n4Akqsz1EzQDs
 ## 📁 Structure du Projet
 
 ```
