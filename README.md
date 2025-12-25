@@ -4,9 +4,9 @@ Plateforme IoT + IA pour la surveillance proactive de la qualité de l'eau au Ma
 
 ## 🎬 Démonstration
 
-https://github.com/user-attachments/assets/demonstration.mp4
+[![Voir la démonstration](https://img.shields.io/badge/▶️_Voir_la_Vidéo-Démonstration-blue?style=for-the-badge&logo=github)](https://github.com/ghayted/AQUA/raw/main/demonstration.mp4)
 
-▶️ [Voir la vidéo de démonstration](./demonstration.mp4)
+📥 **[Télécharger la vidéo de démonstration](https://github.com/ghayted/AQUA/raw/main/demonstration.mp4)** (29 MB)
 
 ---
 
