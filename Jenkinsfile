@@ -43,49 +43,49 @@ pipeline {
             }
         }
         
-        stage('📡 Capteurs') {
+        stage(' Capteurs') {
             steps {
-                echo '📡 Build & Start Capteurs...'
+                echo ' Build & Start Capteurs...'
                 sh 'docker-compose build capteurs'
                 sh 'docker-compose up -d capteurs'
             }
         }
         
-        stage('🛰️ Satellite') {
+        stage(' Satellite') {
             steps {
-                echo '🛰️ Build & Start Satellite...'
+                echo 'Build & Start Satellite...'
                 sh 'docker-compose build satellite'
                 sh 'docker-compose up -d satellite'
             }
         }
         
-        stage('🤖 STModel') {
+        stage('STModel') {
             steps {
-                echo '🤖 Build & Start STModel (ML)...'
+                echo 'Build & Start STModel (ML)...'
                 sh 'docker-compose build stmodel'
                 sh 'docker-compose up -d stmodel'
             }
         }
         
-        stage('🚨 Alertes') {
+        stage('Alertes') {
             steps {
-                echo '🚨 Build & Start Alertes...'
+                echo 'Build & Start Alertes...'
                 sh 'docker-compose build alertes'
                 sh 'docker-compose up -d alertes'
             }
         }
         
-        stage('🗺️ API-SIG') {
+        stage('API-SIG') {
             steps {
-                echo '🗺️ Build & Start API-SIG...'
+                echo ' Build & Start API-SIG...'
                 sh 'docker-compose build api-sig'
                 sh 'docker-compose up -d api-sig'
             }
         }
         
-        stage('🌐 Web') {
+        stage(' Web') {
             steps {
-                echo '🌐 Démarrage du Frontend Web...'
+                echo ' Démarrage du Frontend Web...'
                 sh 'docker-compose up -d web'
                 sh 'sleep 15'
             }
@@ -93,7 +93,7 @@ pipeline {
         
         stage('Health Checks') {
             steps {
-                echo '🏥 Vérification de la santé des services...'
+                echo 'Vérification de la santé des services...'
                 sh '''
                     echo "État des conteneurs:"
                     docker-compose ps
