@@ -73,7 +73,9 @@
 \author[label1]{Reda Bouimakliouine}
 \author[label1]{Souhail Azzimani}
 \author[label1]{Amine Ibnou Chiekh}
-
+\author[label2]{Encadré par : Pr. Oumayma OUEDRHIRI}
+\author[label2]{Pr. Hiba TABBAA}
+\author[label2]{Pr. Mohamed LACHGAR}
 \address[label1]{Ecole Marocaine Des Sciences De L'Ingenieur, Marrakech, Maroc}
 
 
@@ -256,22 +258,13 @@ AquaWatch est construit sur une architecture microservices moderne, flexible et 
     
     Le flux de données complet suit le schéma : 
     
-    \begin{verbatim}
-Capteurs IoT --> MQTT Broker --> Service Capteurs --> TimescaleDB
-                                                          |
-                                                          v
-                                            Service STModel (Predictions)
-                                                          |
-                                                          v
-                                                   TimescaleDB
-                                                          |
-                                                          v
-Service Alertes --> PostgreSQL --> API-SIG <-- TimescaleDB
-                                      |
-                                      v
-                              Interface Web (Nginx)
-    \end{verbatim}
-
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.85\textwidth]{images/architecture-microservices.png}
+        \caption{Architecture des microservices AquaWatch - Flux de données entre les composants}
+        \label{fig:architecture-microservices}
+    \end{figure}
+ 
     \item \textbf{Déploiement et Assurance Qualité}
     
     AquaWatch est déployé comme une stack conteneurisée via Docker Compose. Les 11 services sont orchestrés avec des dépendances de santé (healthchecks) pour garantir un démarrage ordonné. Les volumes persistants assurent la conservation des données entre redémarrages.
